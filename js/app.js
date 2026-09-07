@@ -5,7 +5,7 @@ import { emptyFilters, applyFilters } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
 
 const state = {
-  filters: loadFilters() || { ...emptyFilters },
+  filters: loadFilters() || structuredClone(emptyFilters),
   favorites: loadFavorites(),
   userLocation: null,
   distances: {},
@@ -24,7 +24,9 @@ const el = {
   locateBtn: document.getElementById("locate-btn"),
   viewToggle: document.getElementById("view-toggle"),
   resultCount: document.getElementById("result-count"),
-  resetBtn: document.getElementById("reset-filters")
+  resetBtn: document.getElementById("reset-filters"),
+  filterToggle: document.getElementById("filter-toggle"),
+  filterPanel: document.getElementById("filter-panel")
 };
 
 const TYPE_LABELS = { bar: "Bar", cafe: "Café", coffee: "Coffee" };
@@ -59,6 +61,13 @@ function renderFilterChips() {
   renderChips(el.vibeChips, allVibes, state.filters.vibes);
   el.sortSelect.value = state.filters.sortBy;
   el.search.value = state.filters.search;
+
+  const activeCount =
+    state.filters.types.length +
+    state.filters.categories.length +
+    state.filters.priceRanges.length +
+    state.filters.vibes.length;
+  el.filterToggle.textContent = activeCount > 0 ? `Filter (${activeCount}) ▾` : "Filter ▾";
 }
 
 function computeDistances() {
@@ -158,6 +167,8 @@ async function handleLocate() {
   }
 }
 
+let mapInitialized = false;
+
 function setView(view) {
   state.view = view;
   el.mapContainer.hidden = view !== "map";
@@ -166,6 +177,11 @@ function setView(view) {
     b.classList.toggle("chip--active", b.dataset.view === view);
   });
   if (view === "map") {
+    if (!mapInitialized) {
+      initMap("map");
+      mapInitialized = true;
+      if (state.userLocation) setUserLocation(state.userLocation.lat, state.userLocation.lng);
+    }
     invalidateMapSize();
     render();
   }
@@ -182,16 +198,20 @@ function initEvents() {
   });
   el.locateBtn.addEventListener("click", handleLocate);
   el.resetBtn.addEventListener("click", () => {
-    state.filters = { ...emptyFilters };
+    state.filters = structuredClone(emptyFilters);
     persistAndRender();
   });
   el.viewToggle.querySelectorAll("button").forEach(b => {
     b.addEventListener("click", () => setView(b.dataset.view));
   });
+  el.filterToggle.addEventListener("click", () => {
+    const expanded = el.filterToggle.getAttribute("aria-expanded") === "true";
+    el.filterToggle.setAttribute("aria-expanded", String(!expanded));
+    el.filterPanel.hidden = expanded;
+  });
 }
 
 function init() {
-  initMap("map");
   initEvents();
   renderFilterChips();
   render();

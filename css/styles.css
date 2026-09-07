@@ -136,6 +136,24 @@ h1 {
   border-radius: 8px;
   padding: 6px 8px;
   font-size: 0.8rem;
+  flex: 1;
+  min-width: 0;
+}
+
+#filter-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+#filter-toggle[aria-expanded="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
 }
 
 #reset-filters {
@@ -144,17 +162,26 @@ h1 {
   color: var(--text-dim);
   font-size: 0.8rem;
   text-decoration: underline;
+  margin-top: 4px;
+  padding: 0;
 }
 
 #view-toggle {
   display: flex;
   gap: 6px;
+  flex: none;
+}
+
+#filter-panel {
+  margin-top: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
 }
 
 #result-count {
   font-size: 0.75rem;
   color: var(--text-dim);
-  padding: 8px 16px 0;
+  padding: 6px 0 0;
 }
 
 main {
@@ -167,6 +194,10 @@ main {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+#venue-list[hidden] {
+  display: none;
 }
 
 .venue-card {

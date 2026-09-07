@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="MUC Bars" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
@@ -23,45 +23,48 @@
       <button id="locate-btn">📍 In meiner Nähe</button>
     </div>
 
-    <div class="filter-group">
-      <p class="filter-group__label">Typ</p>
-      <div id="type-chips" class="chip-row"></div>
-    </div>
-    <div class="filter-group">
-      <p class="filter-group__label">Kategorie</p>
-      <div id="category-chips" class="chip-row"></div>
-    </div>
-    <div class="filter-group">
-      <p class="filter-group__label">Preisklasse</p>
-      <div id="price-chips" class="chip-row"></div>
-    </div>
-    <div class="filter-group">
-      <p class="filter-group__label">Vibe</p>
-      <div id="vibe-chips" class="chip-row"></div>
-    </div>
-
     <div class="control-row">
+      <div id="view-toggle">
+        <button class="chip chip--active" data-view="list" type="button">Liste</button>
+        <button class="chip" data-view="map" type="button">Karte</button>
+      </div>
       <select id="sort-select">
         <option value="name">Name A-Z</option>
         <option value="distance">Entfernung</option>
         <option value="price">Preis</option>
       </select>
-      <div id="view-toggle">
-        <button class="chip chip--active" data-view="list" type="button">Liste</button>
-        <button class="chip" data-view="map" type="button">Karte</button>
+      <button id="filter-toggle" type="button" aria-expanded="false">Filter ▾</button>
+    </div>
+
+    <p id="result-count"></p>
+
+    <div id="filter-panel" hidden>
+      <div class="filter-group">
+        <p class="filter-group__label">Typ</p>
+        <div id="type-chips" class="chip-row"></div>
+      </div>
+      <div class="filter-group">
+        <p class="filter-group__label">Kategorie</p>
+        <div id="category-chips" class="chip-row"></div>
+      </div>
+      <div class="filter-group">
+        <p class="filter-group__label">Preisklasse</p>
+        <div id="price-chips" class="chip-row"></div>
+      </div>
+      <div class="filter-group">
+        <p class="filter-group__label">Vibe</p>
+        <div id="vibe-chips" class="chip-row"></div>
       </div>
       <button id="reset-filters" type="button">Filter zurücksetzen</button>
     </div>
   </header>
-
-  <p id="result-count"></p>
 
   <main>
     <div id="venue-list"></div>
     <div id="map" hidden></div>
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./vendor/leaflet/leaflet.js"></script>
   <script type="module" src="./js/app.js"></script>
 </body>
 </html>
