@@ -1,0 +1,247 @@
+:root {
+  --bg: #12141a;
+  --surface: #1c1f27;
+  --surface-2: #262a35;
+  --text: #f0f1f4;
+  --text-dim: #9aa0ad;
+  --accent: #d97757;
+  --accent-2: #4a90d9;
+  --border: #333844;
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+h1 {
+  font-size: 1.15rem;
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#search-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+#search-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+#locate-btn {
+  background: var(--accent-2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#locate-btn:disabled {
+  opacity: 0.6;
+}
+
+.filter-group {
+  margin-bottom: 8px;
+}
+
+.filter-group__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin: 0 0 6px;
+}
+
+.chip-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#sort-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}
+
+#reset-filters {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+#view-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+#result-count {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  padding: 8px 16px 0;
+}
+
+main {
+  flex: 1;
+  position: relative;
+}
+
+#venue-list {
+  padding: 8px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.venue-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.venue-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.venue-card__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.venue-card__meta {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.venue-card__neighborhood {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.venue-card__vibes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.vibe-tag {
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.fav-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: var(--border);
+  line-height: 1;
+  padding: 4px;
+}
+
+.fav-btn--active {
+  color: var(--accent);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 40px 16px;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+#map[hidden] {
+  display: none;
+}

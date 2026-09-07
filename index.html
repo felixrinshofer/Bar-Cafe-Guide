@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <title>München Bars & Cafés</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#12141a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MUC Bars" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>München Bars & Cafés</h1>
+    <div class="search-row">
+      <input id="search-input" type="search" placeholder="Suche nach Name, Kategorie, Viertel…" />
+      <button id="locate-btn">📍 In meiner Nähe</button>
+    </div>
+
+    <div class="filter-group">
+      <p class="filter-group__label">Typ</p>
+      <div id="type-chips" class="chip-row"></div>
+    </div>
+    <div class="filter-group">
+      <p class="filter-group__label">Kategorie</p>
+      <div id="category-chips" class="chip-row"></div>
+    </div>
+    <div class="filter-group">
+      <p class="filter-group__label">Preisklasse</p>
+      <div id="price-chips" class="chip-row"></div>
+    </div>
+    <div class="filter-group">
+      <p class="filter-group__label">Vibe</p>
+      <div id="vibe-chips" class="chip-row"></div>
+    </div>
+
+    <div class="control-row">
+      <select id="sort-select">
+        <option value="name">Name A-Z</option>
+        <option value="distance">Entfernung</option>
+        <option value="price">Preis</option>
+      </select>
+      <div id="view-toggle">
+        <button class="chip chip--active" data-view="list" type="button">Liste</button>
+        <button class="chip" data-view="map" type="button">Karte</button>
+      </div>
+      <button id="reset-filters" type="button">Filter zurücksetzen</button>
+    </div>
+  </header>
+
+  <p id="result-count"></p>
+
+  <main>
+    <div id="venue-list"></div>
+    <div id="map" hidden></div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
