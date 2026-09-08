@@ -2,7 +2,7 @@ let map = null;
 let markersLayer = null;
 let userMarker = null;
 
-const TYPE_COLORS = { bar: "#d97757", cafe: "#7a9e7e", coffee: "#c9a24b" };
+const TYPE_COLORS = { bar: "#ff6a3d", cafe: "#6a5acd", coffee: "#2fb866" };
 
 export function initMap(containerId) {
   map = L.map(containerId, { zoomControl: true }).setView([48.1372, 11.5756], 14);
@@ -38,8 +38,8 @@ export function setUserLocation(lat, lng) {
   } else {
     userMarker = L.circleMarker([lat, lng], {
       radius: 7,
-      color: "#4a90d9",
-      fillColor: "#4a90d9",
+      color: "#0a84ff",
+      fillColor: "#0a84ff",
       fillOpacity: 1,
       weight: 3
     }).addTo(map);
