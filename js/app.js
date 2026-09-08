@@ -35,6 +35,7 @@ const formState = {
 
 const el = {
   list: document.getElementById("venue-list"),
+  typeOverview: document.getElementById("type-overview"),
   mapContainer: document.getElementById("map"),
   emptyGlobal: document.getElementById("empty-state-global"),
   search: document.getElementById("search-input"),
@@ -173,7 +174,7 @@ function renderVenueCard(v) {
     const url = trackUrl(cardObjectUrls, URL.createObjectURL(v.photos[0]));
     thumbHtml = `<img class="venue-card__thumb" src="${url}" alt="" />`;
   } else {
-    thumbHtml = `<div class="venue-card__thumb venue-card__thumb--placeholder">${TYPE_EMOJI[v.type] || "📍"}</div>`;
+    thumbHtml = `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
   }
 
   card.innerHTML = `
@@ -206,10 +207,37 @@ function renderVenueCard(v) {
   return card;
 }
 
+function renderTypeOverview() {
+  el.typeOverview.innerHTML = "";
+  if (state.view !== "list" || state.venues.length === 0) return;
+  const counts = { bar: 0, cafe: 0, coffee: 0 };
+  state.venues.forEach(v => {
+    if (counts[v.type] !== undefined) counts[v.type]++;
+  });
+  ["bar", "cafe", "coffee"].forEach(type => {
+    if (!counts[type]) return;
+    const active = state.filters.types.includes(type);
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = `type-tile type-tile--${type}${active ? " type-tile--active" : ""}`;
+    tile.innerHTML = `
+      <span class="type-tile__emoji">${TYPE_EMOJI[type]}</span>
+      <span class="type-tile__label">${TYPE_LABELS[type]}</span>
+      <span class="type-tile__count">${counts[type]} ${counts[type] === 1 ? "Ort" : "Orte"}</span>
+    `;
+    tile.addEventListener("click", () => {
+      toggleInArray(state.filters.types, type);
+      persistAndRender();
+    });
+    el.typeOverview.appendChild(tile);
+  });
+}
+
 function render() {
   const filtered = applyFilters(state.venues, state.filters, state.distances);
   el.resultCount.textContent = state.venues.length ? `${filtered.length} von ${state.venues.length}` : "";
   el.emptyGlobal.hidden = state.venues.length !== 0;
+  renderTypeOverview();
 
   revokeBucket(cardObjectUrls);
   el.list.innerHTML = "";

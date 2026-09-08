@@ -6,7 +6,7 @@
   <title>München Bars & Cafés</title>
 
   <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#f2f1ec" />
+  <meta name="theme-color" content="#eef1f5" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="MUC Bars" />
@@ -60,6 +60,7 @@
   </header>
 
   <main>
+    <div id="type-overview" class="type-overview"></div>
     <div id="venue-list"></div>
     <div id="map" hidden></div>
     <p id="empty-state-global" class="empty-state" hidden>
@@ -83,9 +84,17 @@
         <p id="detail-address" class="detail-meta"></p>
         <div id="detail-vibes" class="venue-card__vibes"></div>
         <p id="detail-description" class="detail-description"></p>
-        <div class="sheet__actions">
-          <button id="detail-edit" type="button" class="btn btn--secondary">Bearbeiten</button>
-          <button id="detail-delete" type="button" class="btn btn--danger">Löschen</button>
+        <div class="action-tiles">
+          <button id="detail-edit" type="button" class="action-tile">
+            <span class="action-tile__icon action-tile__icon--blue">✎</span>
+            <span class="action-tile__title">Bearbeiten</span>
+            <span class="action-tile__subtitle">Details ändern</span>
+          </button>
+          <button id="detail-delete" type="button" class="action-tile">
+            <span class="action-tile__icon action-tile__icon--red">🗑</span>
+            <span class="action-tile__title">Löschen</span>
+            <span class="action-tile__subtitle">Entfernen</span>
+          </button>
         </div>
       </div>
     </div>
