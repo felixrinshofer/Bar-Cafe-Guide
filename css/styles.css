@@ -680,6 +680,15 @@ main {
   margin: 6px 0 0;
 }
 
+.field-error {
+  font-size: 0.85rem;
+  color: var(--danger);
+  background: rgba(255, 59, 48, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 18px;
+}
+
 .photo-strip {
   display: flex;
   gap: 8px;

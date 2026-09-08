@@ -3,12 +3,13 @@ import { haversineDistanceKm, formatDistance, getCurrentPosition } from "./geo.j
 import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.js";
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
-import { getAllVenues, putVenue, deleteVenue, createId } from "./db.js";
-import { fileToCompressedBlob } from "./image.js";
+import { subscribeVenues, putVenue, deleteVenue, createId } from "./firebase.js";
+import { fileToCompressedBase64 } from "./image.js";
 
 const TYPE_LABELS = { bar: "Bar", cafe: "Café", coffee: "Coffee" };
 const TYPE_EMOJI = { bar: "🍸", cafe: "☕", coffee: "☕" };
 const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
+const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer für andere Felder lassen
 
 const state = {
   venues: [],
@@ -16,13 +17,11 @@ const state = {
   favorites: loadFavorites(),
   userLocation: null,
   distances: {},
-  view: "list"
+  view: "list",
+  loaded: false
 };
 
 let mapInitialized = false;
-let cardObjectUrls = [];
-let detailObjectUrls = [];
-let formObjectUrls = [];
 
 const formState = {
   editingId: null,
@@ -85,7 +84,9 @@ const el = {
   fDescription: document.getElementById("f-description"),
   fPhotos: document.getElementById("f-photos"),
   fPhotoInput: document.getElementById("f-photo-input"),
-  fPhotoAdd: document.getElementById("f-photo-add")
+  fPhotoAdd: document.getElementById("f-photo-add"),
+  fSubmit: document.querySelector("#venue-form button[type=submit]"),
+  fError: document.getElementById("f-error")
 };
 
 function toggleInArray(arr, value) {
@@ -93,16 +94,6 @@ function toggleInArray(arr, value) {
   if (i === -1) arr.push(value);
   else arr.splice(i, 1);
   return arr;
-}
-
-function trackUrl(bucket, url) {
-  bucket.push(url);
-  return url;
-}
-
-function revokeBucket(bucket) {
-  bucket.forEach(u => URL.revokeObjectURL(u));
-  bucket.length = 0;
 }
 
 function renderChips(container, values, selectedArr, labelFn, onChange) {
@@ -169,13 +160,10 @@ function renderVenueCard(v) {
   const isFav = state.favorites.has(v.id);
   const dist = state.distances[v.id];
 
-  let thumbHtml;
-  if (v.photos && v.photos.length) {
-    const url = trackUrl(cardObjectUrls, URL.createObjectURL(v.photos[0]));
-    thumbHtml = `<img class="venue-card__thumb" src="${url}" alt="" />`;
-  } else {
-    thumbHtml = `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
-  }
+  const thumbHtml =
+    v.photos && v.photos.length
+      ? `<img class="venue-card__thumb" src="${v.photos[0]}" alt="" />`
+      : `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
 
   card.innerHTML = `
     ${thumbHtml}
@@ -236,10 +224,9 @@ function renderTypeOverview() {
 function render() {
   const filtered = applyFilters(state.venues, state.filters, state.distances);
   el.resultCount.textContent = state.venues.length ? `${filtered.length} von ${state.venues.length}` : "";
-  el.emptyGlobal.hidden = state.venues.length !== 0;
+  el.emptyGlobal.hidden = !state.loaded || state.venues.length !== 0;
   renderTypeOverview();
 
-  revokeBucket(cardObjectUrls);
   el.list.innerHTML = "";
   if (state.venues.length > 0) {
     if (filtered.length === 0) {
@@ -268,11 +255,6 @@ function persistAndRender() {
   saveFilters(state.filters);
   renderFilterChips();
   render();
-}
-
-async function refreshVenues() {
-  state.venues = await getAllVenues();
-  state.distances = computeDistances();
 }
 
 async function handleLocate() {
@@ -319,12 +301,10 @@ function openDetail(id) {
   const v = state.venues.find(x => x.id === id);
   if (!v) return;
 
-  revokeBucket(detailObjectUrls);
   el.detailPhotos.innerHTML = "";
-  (v.photos || []).forEach(blob => {
-    const url = trackUrl(detailObjectUrls, URL.createObjectURL(blob));
+  (v.photos || []).forEach(src => {
     const img = document.createElement("img");
-    img.src = url;
+    img.src = src;
     img.alt = v.name;
     el.detailPhotos.appendChild(img);
   });
@@ -349,14 +329,18 @@ function openDetail(id) {
     openForm(v);
   };
   el.detailDelete.onclick = async () => {
-    if (!confirm(`"${v.name}" wirklich löschen?`)) return;
-    await deleteVenue(v.id);
-    state.favorites.delete(v.id);
-    saveFavorites(state.favorites);
-    await refreshVenues();
-    closeDetail();
-    renderFilterChips();
-    render();
+    if (!confirm(`"${v.name}" wirklich für alle löschen?`)) return;
+    el.detailDelete.disabled = true;
+    try {
+      await deleteVenue(v.id);
+      state.favorites.delete(v.id);
+      saveFavorites(state.favorites);
+      closeDetail();
+    } catch (err) {
+      alert("Löschen fehlgeschlagen: " + err.message);
+    } finally {
+      el.detailDelete.disabled = false;
+    }
   };
 
   el.detailSheet.hidden = false;
@@ -364,7 +348,6 @@ function openDetail(id) {
 
 function closeDetail() {
   el.detailSheet.hidden = true;
-  revokeBucket(detailObjectUrls);
   el.detailPhotos.innerHTML = "";
 }
 
@@ -377,13 +360,11 @@ function renderFormVibes() {
 }
 
 function renderFormPhotos() {
-  revokeBucket(formObjectUrls);
   el.fPhotos.innerHTML = "";
-  formState.photos.forEach((blob, index) => {
-    const url = trackUrl(formObjectUrls, URL.createObjectURL(blob));
+  formState.photos.forEach((src, index) => {
     const wrap = document.createElement("div");
     wrap.className = "photo-thumb";
-    wrap.innerHTML = `<img src="${url}" alt="" /><button type="button" class="photo-thumb__remove" aria-label="Foto entfernen">✕</button>`;
+    wrap.innerHTML = `<img src="${src}" alt="" /><button type="button" class="photo-thumb__remove" aria-label="Foto entfernen">✕</button>`;
     wrap.querySelector("button").addEventListener("click", () => {
       formState.photos.splice(index, 1);
       renderFormPhotos();
@@ -406,6 +387,7 @@ function openForm(venue) {
   formState.price = venue ? venue.priceRange : 2;
   formState.location = venue && typeof venue.lat === "number" ? { lat: venue.lat, lng: venue.lng } : null;
 
+  el.fError.hidden = true;
   el.formTitle.textContent = venue ? "Location bearbeiten" : "Neue Location";
   el.fName.value = venue ? venue.name : "";
   el.fCategory.value = venue ? venue.category || "" : "";
@@ -441,7 +423,6 @@ function renderPriceSegmented() {
 
 function closeForm() {
   el.formSheet.hidden = true;
-  revokeBucket(formObjectUrls);
   el.fPhotos.innerHTML = "";
   el.form.reset();
 }
@@ -467,8 +448,8 @@ async function handlePhotoInputChange(e) {
   e.target.value = "";
   for (const file of files) {
     try {
-      const blob = await fileToCompressedBlob(file);
-      formState.photos.push(blob);
+      const base64 = await fileToCompressedBase64(file);
+      formState.photos.push(base64);
     } catch (err) {
       console.warn(err);
     }
@@ -502,11 +483,25 @@ async function handleFormSubmit(e) {
     createdAt: existing ? existing.createdAt : Date.now()
   };
 
-  await putVenue(venue);
-  await refreshVenues();
-  closeForm();
-  renderFilterChips();
-  render();
+  const estimatedSize = new Blob([JSON.stringify(venue)]).size;
+  if (estimatedSize > MAX_DOC_BYTES) {
+    el.fError.textContent = "Zu viele/große Fotos für einen Eintrag. Bitte ein Foto entfernen und erneut speichern.";
+    el.fError.hidden = false;
+    return;
+  }
+
+  el.fSubmit.disabled = true;
+  el.fSubmit.textContent = "Speichert…";
+  try {
+    await putVenue(venue);
+    closeForm();
+  } catch (err) {
+    el.fError.textContent = "Speichern fehlgeschlagen: " + err.message;
+    el.fError.hidden = false;
+  } finally {
+    el.fSubmit.disabled = false;
+    el.fSubmit.textContent = "Speichern";
+  }
 }
 
 function initEvents() {
@@ -565,11 +560,21 @@ function addCustomVibe() {
   }
 }
 
-async function init() {
+function init() {
   initEvents();
-  await refreshVenues();
-  renderFilterChips();
-  render();
+
+  subscribeVenues(
+    venues => {
+      state.venues = venues;
+      state.loaded = true;
+      state.distances = computeDistances();
+      renderFilterChips();
+      render();
+    },
+    () => {
+      el.resultCount.textContent = "Verbindung zur Datenbank fehlgeschlagen";
+    }
+  );
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {

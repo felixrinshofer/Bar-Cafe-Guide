@@ -1,7 +1,7 @@
-const MAX_DIMENSION = 1600;
-const JPEG_QUALITY = 0.82;
+const MAX_DIMENSION = 900;
+const TARGET_BYTES = 150_000; // Firestore-Dokumente sind auf 1 MiB begrenzt, mehrere Fotos müssen reinpassen
 
-export function fileToCompressedBlob(file) {
+export function fileToCompressedBase64(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -18,7 +18,14 @@ export function fileToCompressedBlob(file) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      canvas.toBlob(blob => (blob ? resolve(blob) : reject(new Error("Bild konnte nicht verarbeitet werden."))), "image/jpeg", JPEG_QUALITY);
+
+      let quality = 0.7;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      while (dataUrl.length > TARGET_BYTES && quality > 0.3) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+      resolve(dataUrl);
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
