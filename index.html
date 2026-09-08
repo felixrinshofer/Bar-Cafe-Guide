@@ -6,9 +6,9 @@
   <title>München Bars & Cafés</title>
 
   <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#12141a" />
+  <meta name="theme-color" content="#f2f1ec" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="MUC Bars" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
@@ -62,7 +62,88 @@
   <main>
     <div id="venue-list"></div>
     <div id="map" hidden></div>
+    <p id="empty-state-global" class="empty-state" hidden>
+      Noch keine Locations eingetragen.<br />Tipp unten rechts auf „+“, um deine erste Bar oder dein erstes Café hinzuzufügen.
+    </p>
   </main>
+
+  <button id="fab-add" type="button" aria-label="Bar oder Café hinzufügen">+</button>
+
+  <div id="detail-sheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <button class="sheet__close" id="detail-close" type="button" aria-label="Schließen">✕</button>
+      <div id="detail-photos" class="detail-photos"></div>
+      <div class="sheet__body">
+        <div class="detail-title-row">
+          <h2 id="detail-name"></h2>
+          <button class="fav-btn" id="detail-fav" type="button" aria-label="Favorit">★</button>
+        </div>
+        <p id="detail-meta" class="detail-meta"></p>
+        <p id="detail-address" class="detail-meta"></p>
+        <div id="detail-vibes" class="venue-card__vibes"></div>
+        <p id="detail-description" class="detail-description"></p>
+        <div class="sheet__actions">
+          <button id="detail-edit" type="button" class="btn btn--secondary">Bearbeiten</button>
+          <button id="detail-delete" type="button" class="btn btn--danger">Löschen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="form-sheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <button class="sheet__close" id="form-close" type="button" aria-label="Schließen">✕</button>
+      <div class="sheet__body">
+        <h2 id="form-title">Neue Location</h2>
+        <form id="venue-form">
+          <label class="field-label" for="f-name">Name</label>
+          <input id="f-name" type="text" required placeholder="z.B. Goldene Bar" />
+
+          <p class="field-label">Typ</p>
+          <div id="f-type" class="segmented"></div>
+
+          <label class="field-label" for="f-category">Kategorie</label>
+          <input id="f-category" type="text" list="category-suggestions" placeholder="z.B. Cocktailbar" />
+          <datalist id="category-suggestions"></datalist>
+
+          <p class="field-label">Preisklasse</p>
+          <div id="f-price" class="segmented"></div>
+
+          <p class="field-label">Vibes</p>
+          <div id="f-vibes" class="chip-row chip-row--wrap"></div>
+          <div class="inline-add">
+            <input id="f-vibe-input" type="text" placeholder="Eigenen Vibe hinzufügen…" />
+            <button id="f-vibe-add" type="button" class="btn btn--small">+</button>
+          </div>
+
+          <label class="field-label" for="f-neighborhood">Stadtteil</label>
+          <input id="f-neighborhood" type="text" placeholder="z.B. Glockenbachviertel" />
+
+          <label class="field-label" for="f-address">Adresse (optional)</label>
+          <input id="f-address" type="text" placeholder="Straße, PLZ Ort" />
+
+          <p class="field-label">Standort</p>
+          <button id="f-locate" type="button" class="btn btn--secondary">📍 Aktuellen Standort verwenden</button>
+          <p id="f-location-status" class="field-hint"></p>
+
+          <label class="field-label" for="f-description">Meine Notizen</label>
+          <textarea id="f-description" rows="4" placeholder="Was macht diesen Ort besonders? Lieblingsdrink, Erinnerung, Tipp…"></textarea>
+
+          <p class="field-label">Fotos</p>
+          <div id="f-photos" class="photo-strip"></div>
+          <input id="f-photo-input" type="file" accept="image/*" multiple hidden />
+          <button id="f-photo-add" type="button" class="btn btn--secondary">📷 Foto hinzufügen</button>
+
+          <div class="sheet__actions">
+            <button type="button" id="form-cancel" class="btn btn--secondary">Abbrechen</button>
+            <button type="submit" class="btn btn--primary">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <script src="./vendor/leaflet/leaflet.js"></script>
   <script type="module" src="./js/app.js"></script>

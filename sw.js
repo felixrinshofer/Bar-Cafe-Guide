@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v1";
+const CACHE_NAME = "muc-bars-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -10,6 +10,8 @@ const APP_SHELL = [
   "./js/store.js",
   "./js/filters.js",
   "./js/map.js",
+  "./js/db.js",
+  "./js/image.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./vendor/leaflet/leaflet.js",
@@ -23,7 +25,13 @@ const APP_SHELL = [
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        APP_SHELL.map(url =>
+          fetch(url, { cache: "reload" }).then(response => cache.put(url, response))
+        )
+      )
+    ).then(() => self.skipWaiting())
   );
 });
 

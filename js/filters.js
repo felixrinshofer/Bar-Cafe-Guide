@@ -1,3 +1,10 @@
+export function deriveOptions(venues) {
+  return {
+    categories: [...new Set(venues.map(v => v.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")),
+    vibes: [...new Set(venues.flatMap(v => v.vibes || []))].sort((a, b) => a.localeCompare(b, "de"))
+  };
+}
+
 export const emptyFilters = {
   types: [],
   categories: [],
