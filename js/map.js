@@ -1,55 +1,63 @@
+import { MapLibreMap, Marker, NavigationControl } from "../vendor/maplibre/maplibre-gl.mjs";
+
 let map = null;
-let markersLayer = null;
+let markers = [];
 let userMarker = null;
 
 const TYPE_COLORS = { bar: "#ff6a3d", cafe: "#6a5acd", coffee: "#2fb866" };
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export function initMap(containerId) {
-  map = L.map(containerId, { zoomControl: true }).setView([48.1372, 11.5756], 14);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 19
-  }).addTo(map);
-  markersLayer = L.layerGroup().addTo(map);
+  map = new MapLibreMap({
+    container: containerId,
+    style: STYLE_URL,
+    center: [11.5756, 48.1372],
+    zoom: 13,
+    attributionControl: { compact: true }
+  });
+  map.addControl(new NavigationControl({ showCompass: false }), "top-left");
   return map;
 }
 
+function createDotElement(color, size) {
+  const el = document.createElement("div");
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.borderRadius = "50%";
+  el.style.background = color;
+  el.style.border = "2px solid white";
+  el.style.boxShadow = "0 1px 5px rgba(0, 0, 0, 0.35)";
+  el.style.cursor = "pointer";
+  return el;
+}
+
 export function renderVenueMarkers(venues, onSelect) {
-  if (!markersLayer) return;
-  markersLayer.clearLayers();
+  if (!map) return;
+  markers.forEach(m => m.remove());
+  markers = [];
   venues.forEach(v => {
-    const marker = L.circleMarker([v.lat, v.lng], {
-      radius: 8,
-      color: TYPE_COLORS[v.type] || "#888",
-      fillColor: TYPE_COLORS[v.type] || "#888",
-      fillOpacity: 0.85,
-      weight: 2
-    });
-    marker.bindPopup(`<strong>${v.name}</strong><br>${v.category} · ${"€".repeat(v.priceRange)}`);
-    marker.on("click", () => onSelect && onSelect(v.id));
-    marker.addTo(markersLayer);
+    const el = createDotElement(TYPE_COLORS[v.type] || "#888", 18);
+    const marker = new Marker({ element: el }).setLngLat([v.lng, v.lat]).addTo(map);
+    el.addEventListener("click", () => onSelect && onSelect(v.id));
+    markers.push(marker);
   });
 }
 
 export function setUserLocation(lat, lng) {
   if (!map) return;
   if (userMarker) {
-    userMarker.setLatLng([lat, lng]);
+    userMarker.setLngLat([lng, lat]);
   } else {
-    userMarker = L.circleMarker([lat, lng], {
-      radius: 7,
-      color: "#0a84ff",
-      fillColor: "#0a84ff",
-      fillOpacity: 1,
-      weight: 3
-    }).addTo(map);
+    const el = createDotElement("#0a84ff", 16);
+    el.style.border = "3px solid white";
+    userMarker = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
   }
 }
 
 export function panTo(lat, lng, zoom = 15) {
-  if (map) map.setView([lat, lng], zoom);
+  if (map) map.flyTo({ center: [lng, lat], zoom, speed: 1.2 });
 }
 
 export function invalidateMapSize() {
-  if (map) setTimeout(() => map.invalidateSize(), 50);
+  if (map) setTimeout(() => map.resize(), 50);
 }

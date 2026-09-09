@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v11";
+const CACHE_NAME = "muc-bars-v12";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,13 +16,10 @@ const APP_SHELL = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/logo.svg",
-  "./vendor/leaflet/leaflet.js",
-  "./vendor/leaflet/leaflet.css",
-  "./vendor/leaflet/images/marker-icon.png",
-  "./vendor/leaflet/images/marker-icon-2x.png",
-  "./vendor/leaflet/images/marker-shadow.png",
-  "./vendor/leaflet/images/layers.png",
-  "./vendor/leaflet/images/layers-2x.png"
+  "./vendor/maplibre/maplibre-gl.mjs",
+  "./vendor/maplibre/maplibre-gl-shared.mjs",
+  "./vendor/maplibre/maplibre-gl-worker.mjs",
+  "./vendor/maplibre/maplibre-gl.css"
 ];
 
 self.addEventListener("install", event => {
@@ -47,7 +44,7 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return; // Leaflet-CDN & Tiles nicht cachen
+  if (url.origin !== self.location.origin) return; // Kartenkacheln/Style nicht cachen
 
   event.respondWith(
     caches.match(event.request).then(cached => {
