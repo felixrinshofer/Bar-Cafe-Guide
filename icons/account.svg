@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <clipPath id="ring-clip">
+      <circle cx="50" cy="50" r="42" />
+    </clipPath>
+  </defs>
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#0056b3" stroke-width="7" />
+  <g clip-path="url(#ring-clip)">
+    <circle cx="50" cy="40" r="15" fill="#0056b3" />
+    <path d="M50 58c15 0 27 12 27 27v6H23v-6c0-15 12-27 27-27z" fill="#0056b3" />
+  </g>
+</svg>

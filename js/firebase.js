@@ -8,6 +8,14 @@ import {
   onSnapshot,
   enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDpfGOkOqs_3HpyNCyl-74oucPlWf77FpI",
@@ -20,7 +28,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const venuesCol = collection(db, "venues");
+const usersCol = collection(db, "users");
 
 enableIndexedDbPersistence(db).catch(() => {
   /* mehrere Tabs offen oder Browser unterstützt es nicht - Offline-Cache bleibt dann leer, App funktioniert trotzdem */
@@ -48,4 +58,28 @@ export async function deleteVenue(id) {
 
 export function createId() {
   return doc(venuesCol).id;
+}
+
+export function onAuthChange(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+export async function registerUser(email, password, displayName) {
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(cred.user, { displayName });
+  await setDoc(doc(usersCol, cred.user.uid), {
+    displayName,
+    email,
+    createdAt: Date.now()
+  });
+  return cred.user;
+}
+
+export async function loginUser(email, password) {
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  return cred.user;
+}
+
+export async function logoutUser() {
+  await signOut(auth);
 }

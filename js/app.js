@@ -3,7 +3,7 @@ import { haversineDistanceKm, formatDistance, getCurrentPosition } from "./geo.j
 import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.js";
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
-import { subscribeVenues, putVenue, deleteVenue, createId } from "./firebase.js";
+import { subscribeVenues, putVenue, deleteVenue, createId, onAuthChange, registerUser, loginUser, logoutUser } from "./firebase.js";
 import { fileToCompressedBase64, urlToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
 import { searchPlaces, fetchCommonsImageUrl } from "./placesearch.js";
@@ -21,8 +21,11 @@ const state = {
   userLocation: null,
   distances: {},
   view: "list",
-  loaded: false
+  loaded: false,
+  user: null
 };
+
+let authMode = "login";
 
 let mapInitialized = false;
 
@@ -106,7 +109,25 @@ const el = {
   fPhotoInput: document.getElementById("f-photo-input"),
   fPhotoAdd: document.getElementById("f-photo-add"),
   fSubmit: document.querySelector("#venue-form button[type=submit]"),
-  fError: document.getElementById("f-error")
+  fError: document.getElementById("f-error"),
+
+  accountBtn: document.getElementById("account-btn"),
+  accountSheet: document.getElementById("account-sheet"),
+  accountClose: document.getElementById("account-close"),
+  accountLoggedOut: document.getElementById("account-logged-out"),
+  accountLoggedIn: document.getElementById("account-logged-in"),
+  authTabs: document.getElementById("auth-tabs"),
+  authForm: document.getElementById("auth-form"),
+  authNameLabel: document.getElementById("auth-name-label"),
+  authName: document.getElementById("auth-name"),
+  authEmail: document.getElementById("auth-email"),
+  authPassword: document.getElementById("auth-password"),
+  authError: document.getElementById("auth-error"),
+  authSubmit: document.getElementById("auth-submit"),
+  accountAvatar: document.getElementById("account-avatar"),
+  accountName: document.getElementById("account-name"),
+  accountEmail: document.getElementById("account-email"),
+  accountLogout: document.getElementById("account-logout")
 };
 
 function toggleInArray(arr, value) {
@@ -748,6 +769,81 @@ async function handleFormSubmit(e) {
   }
 }
 
+const AUTH_ERROR_MESSAGES = {
+  "auth/email-already-in-use": "Diese E-Mail ist bereits registriert.",
+  "auth/invalid-email": "Ungültige E-Mail-Adresse.",
+  "auth/weak-password": "Passwort muss mind. 6 Zeichen haben.",
+  "auth/invalid-credential": "E-Mail oder Passwort falsch.",
+  "auth/wrong-password": "E-Mail oder Passwort falsch.",
+  "auth/user-not-found": "E-Mail oder Passwort falsch.",
+  "auth/too-many-requests": "Zu viele Versuche. Bitte später erneut versuchen.",
+  "auth/configuration-not-found": "Accounts sind in der Firebase-Konsole noch nicht aktiviert (Authentication → Sign-in method → E-Mail/Passwort)."
+};
+
+function setAuthMode(mode) {
+  authMode = mode;
+  el.authTabs.querySelectorAll("button").forEach(b => {
+    b.classList.toggle("chip--active", b.dataset.mode === mode);
+  });
+  const isRegister = mode === "register";
+  el.authNameLabel.hidden = !isRegister;
+  el.authName.hidden = !isRegister;
+  el.authName.required = isRegister;
+  el.authPassword.autocomplete = isRegister ? "new-password" : "current-password";
+  el.authSubmit.textContent = isRegister ? "Registrieren" : "Anmelden";
+  el.authError.hidden = true;
+}
+
+function openAccountSheet() {
+  el.accountSheet.hidden = false;
+}
+
+function closeAccountSheet() {
+  el.accountSheet.hidden = true;
+  el.authError.hidden = true;
+  el.authForm.reset();
+  setAuthMode("login");
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  el.authError.hidden = true;
+  el.authSubmit.disabled = true;
+  try {
+    const user =
+      authMode === "register"
+        ? await registerUser(el.authEmail.value.trim(), el.authPassword.value, el.authName.value.trim())
+        : await loginUser(el.authEmail.value.trim(), el.authPassword.value);
+    renderAccountUI(user);
+    closeAccountSheet();
+  } catch (err) {
+    el.authError.textContent = AUTH_ERROR_MESSAGES[err.code] || "Etwas ist schiefgelaufen. Bitte erneut versuchen.";
+    el.authError.hidden = false;
+  } finally {
+    el.authSubmit.disabled = false;
+  }
+}
+
+function renderAccountUI(user) {
+  state.user = user;
+  if (user) {
+    el.accountLoggedOut.hidden = true;
+    el.accountLoggedIn.hidden = false;
+    const name = user.displayName || user.email;
+    const initial = name.charAt(0).toUpperCase();
+    el.accountName.textContent = name;
+    el.accountEmail.textContent = user.email;
+    el.accountAvatar.textContent = initial;
+    el.accountBtn.textContent = initial;
+    el.accountBtn.classList.add("account-btn--active");
+  } else {
+    el.accountLoggedOut.hidden = false;
+    el.accountLoggedIn.hidden = true;
+    el.accountBtn.innerHTML = '<img class="account-icon" src="./icons/account.svg" alt="" />';
+    el.accountBtn.classList.remove("account-btn--active");
+  }
+}
+
 function initEvents() {
   el.search.addEventListener("input", e => {
     state.filters.search = e.target.value;
@@ -810,6 +906,17 @@ function initEvents() {
       addCustomVibe();
     }
   });
+
+  el.accountBtn.addEventListener("click", openAccountSheet);
+  el.accountClose.addEventListener("click", closeAccountSheet);
+  el.accountSheet.addEventListener("click", e => {
+    if (e.target === el.accountSheet) closeAccountSheet();
+  });
+  el.authTabs.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => setAuthMode(b.dataset.mode));
+  });
+  el.authForm.addEventListener("submit", handleAuthSubmit);
+  el.accountLogout.addEventListener("click", () => logoutUser());
 }
 
 function addCustomVibe() {
@@ -842,6 +949,7 @@ function initHeaderShrink() {
 function init() {
   initEvents();
   initHeaderShrink();
+  onAuthChange(renderAccountUI);
 
   subscribeVenues(
     venues => {

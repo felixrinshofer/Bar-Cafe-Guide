@@ -19,6 +19,9 @@
   <header id="app-header">
     <h1 class="app-logo-wrap">
       <img id="app-logo" class="app-logo" src="./icons/logo.svg" alt="Bar Café Guide" />
+      <button id="account-btn" class="account-btn" type="button" aria-label="Account">
+        <img class="account-icon" src="./icons/account.svg" alt="" />
+      </button>
     </h1>
     <div class="search-row">
       <input id="search-input" type="search" placeholder="Suche nach Name, Kategorie, Viertel…" />
@@ -96,6 +99,51 @@
         <div class="detail-footer-actions">
           <button id="detail-edit" type="button" class="text-action">✎ Bearbeiten</button>
           <button id="detail-delete" type="button" class="text-action text-action--danger">Löschen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="account-sheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <button class="sheet__close" id="account-close" type="button" aria-label="Schließen">✕</button>
+      <div class="sheet__body">
+        <h2>Account</h2>
+
+        <div id="account-logged-out">
+          <div id="auth-tabs" class="segmented">
+            <button type="button" class="chip--active" data-mode="login">Anmelden</button>
+            <button type="button" data-mode="register">Registrieren</button>
+          </div>
+
+          <form id="auth-form">
+            <label class="field-label" for="auth-name" id="auth-name-label" hidden>Anzeigename</label>
+            <input id="auth-name" type="text" placeholder="z.B. Felix" hidden />
+
+            <label class="field-label" for="auth-email">E-Mail</label>
+            <input id="auth-email" type="email" required placeholder="du@beispiel.de" autocomplete="email" />
+
+            <label class="field-label" for="auth-password">Passwort</label>
+            <input id="auth-password" type="password" required minlength="6" placeholder="Mind. 6 Zeichen" autocomplete="current-password" />
+
+            <p id="auth-error" class="field-error" hidden></p>
+
+            <div class="sheet__actions">
+              <button type="submit" class="btn btn--primary" id="auth-submit">Anmelden</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="account-logged-in" hidden>
+          <div class="account-profile">
+            <div id="account-avatar" class="account-avatar"></div>
+            <div>
+              <p id="account-name" class="account-name"></p>
+              <p id="account-email" class="account-email"></p>
+            </div>
+          </div>
+          <button id="account-logout" type="button" class="btn btn--secondary">Abmelden</button>
         </div>
       </div>
     </div>
