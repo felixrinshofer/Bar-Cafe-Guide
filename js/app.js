@@ -1938,18 +1938,7 @@ function init() {
     window.addEventListener("load", () => {
       navigator.serviceWorker
         .register("./sw.js", { updateViaCache: "none" })
-        .then(reg => {
-          reg.update().catch(() => {});
-        })
         .catch(err => console.warn("SW-Registrierung fehlgeschlagen", err));
-    });
-
-    let hasReloaded = sessionStorage.getItem("sw-reloaded") === "1";
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (hasReloaded) return;
-      hasReloaded = true;
-      sessionStorage.setItem("sw-reloaded", "1");
-      window.location.reload();
     });
   }
 }
