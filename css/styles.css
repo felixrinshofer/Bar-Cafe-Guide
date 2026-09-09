@@ -4,6 +4,8 @@
   --surface: rgba(255, 255, 255, 0.7);
   --surface-solid: #ffffff;
   --surface-strong: rgba(255, 255, 255, 0.9);
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.6);
   --text: #1c1c1e;
   --text-dim: #6e6e73;
   --text-faint: #a1a1a6;
@@ -17,7 +19,8 @@
   --radius-lg: 22px;
   --radius-md: 18px;
   --radius-sm: 12px;
-  --blur: blur(20px) saturate(180%);
+  --blur: blur(30px) saturate(200%);
+  --ease-liquid: cubic-bezier(0.22, 1, 0.36, 1);
   --shadow-soft: 0 10px 26px rgba(28, 28, 30, 0.1);
   --shadow-lift: 0 20px 50px rgba(28, 28, 30, 0.22);
   --shadow-float: 0 4px 16px rgba(28, 28, 30, 0.08);
@@ -53,11 +56,22 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(238, 241, 245, 0.75);
+  background: rgba(238, 241, 245, 0.55);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
-  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: 0 0 0 rgba(28, 28, 30, 0);
+  transition:
+    border-radius 0.7s var(--ease-liquid),
+    box-shadow 0.7s var(--ease-liquid),
+    background 0.7s var(--ease-liquid);
+}
+
+#app-header.header--scrolled {
+  border-radius: 0 0 36px 36px;
+  box-shadow: 0 18px 40px rgba(28, 28, 30, 0.14);
+  background: rgba(238, 241, 245, 0.68);
 }
 
 .app-logo-wrap {
@@ -70,7 +84,7 @@ header {
   display: block;
   height: 64px;
   width: auto;
-  transition: height 0.3s ease;
+  transition: height 0.7s var(--ease-liquid);
 }
 
 #app-header.header--scrolled .app-logo {
@@ -86,8 +100,10 @@ header {
 #search-input {
   flex: 1;
   min-width: 0;
-  background: var(--surface-solid);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -152,8 +168,10 @@ header {
 
 .chip {
   flex: none;
-  background: var(--surface-solid);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
   color: var(--text-dim);
   border-radius: 999px;
   padding: 7px 13px;
@@ -177,8 +195,10 @@ header {
 }
 
 #sort-select {
-  background: var(--surface-solid);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 7px 8px;
@@ -189,8 +209,10 @@ header {
 }
 
 #filter-toggle {
-  background: var(--surface-solid);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 7px 12px;

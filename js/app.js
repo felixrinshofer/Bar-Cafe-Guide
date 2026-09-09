@@ -541,22 +541,29 @@ async function handleMapLinkBlur() {
   }
 }
 
-async function geocodeAddressField() {
+let pendingGeocode = null;
+
+function geocodeAddressField() {
+  if (!el.fAddress.value.trim()) return Promise.resolve();
   const query = [el.fAddress.value.trim(), el.fNeighborhood.value.trim(), "München"].filter(Boolean).join(", ");
-  if (!el.fAddress.value.trim()) return;
-  try {
-    const result = await geocodeAddress(query);
-    if (result) {
-      formState.location = { lat: result.lat, lng: result.lng };
-      updateLocationStatus();
-      el.fMapLinkStatus.textContent = "✓ Standort zur Adresse gefunden.";
-    } else {
-      el.fMapLinkStatus.textContent = "Adresse nicht gefunden. Standort ggf. per GPS oder Link setzen.";
+  pendingGeocode = (async () => {
+    try {
+      const result = await geocodeAddress(query);
+      if (result) {
+        formState.location = { lat: result.lat, lng: result.lng };
+        updateLocationStatus();
+        el.fMapLinkStatus.textContent = "✓ Standort zur Adresse gefunden.";
+      } else {
+        el.fMapLinkStatus.textContent = "Adresse nicht gefunden. Standort ggf. per GPS oder Link setzen.";
+      }
+    } catch (err) {
+      console.warn(err);
+      el.fMapLinkStatus.textContent = "Geocoding gerade nicht erreichbar.";
+    } finally {
+      pendingGeocode = null;
     }
-  } catch (err) {
-    console.warn(err);
-    el.fMapLinkStatus.textContent = "Geocoding gerade nicht erreichbar.";
-  }
+  })();
+  return pendingGeocode;
 }
 
 async function handleAddressBlur() {
@@ -587,6 +594,19 @@ async function handleFormSubmit(e) {
     return;
   }
 
+  el.fSubmit.disabled = true;
+  el.fSubmit.textContent = "Speichert…";
+
+  // Adress-Geocoding läuft asynchron im Hintergrund (ausgelöst beim Verlassen des
+  // Felds) - falls das noch nicht fertig ist oder nie ausgelöst wurde (z.B. Adresse
+  // eingegeben und direkt gespeichert, ohne das Feld zu verlassen), hier abwarten/
+  // nachholen, damit der Standort nicht fehlt.
+  if (pendingGeocode) {
+    await pendingGeocode;
+  } else if (el.fAddress.value.trim() && !formState.location) {
+    await geocodeAddressField();
+  }
+
   const existing = formState.editingId ? state.venues.find(v => v.id === formState.editingId) : null;
 
   const venue = {
@@ -610,11 +630,11 @@ async function handleFormSubmit(e) {
   if (estimatedSize > MAX_DOC_BYTES) {
     el.fError.textContent = "Zu viele/große Fotos für einen Eintrag. Bitte ein Foto entfernen und erneut speichern.";
     el.fError.hidden = false;
+    el.fSubmit.disabled = false;
+    el.fSubmit.textContent = "Speichern";
     return;
   }
 
-  el.fSubmit.disabled = true;
-  el.fSubmit.textContent = "Speichert…";
   try {
     await putVenue(venue);
     closeForm();
