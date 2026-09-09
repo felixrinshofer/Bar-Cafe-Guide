@@ -1,6 +1,6 @@
 {
-  "name": "München Bars & Cafés",
-  "short_name": "MUC Bars",
+  "name": "Bar Café Guide",
+  "short_name": "BCG",
   "description": "Kuratierte Liste von Bars und Cafés in München mit Filter- und Standortfunktion",
   "start_url": "./index.html",
   "scope": "./",
