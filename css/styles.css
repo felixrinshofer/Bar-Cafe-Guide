@@ -310,7 +310,7 @@ main {
 }
 
 #venue-list {
-  padding: 4px 16px 90px;
+  padding: 4px 16px 110px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -519,23 +519,55 @@ main {
   display: none;
 }
 
-/* Floating action button */
+/* Bottom dock */
 
-#fab-add {
+.bottom-dock {
   position: fixed;
-  right: 20px;
-  bottom: calc(env(safe-area-inset-bottom) + 20px);
-  width: 58px;
-  height: 58px;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 18px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lift);
+  z-index: 20;
+}
+
+.dock-btn {
+  flex: none;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   border: none;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(28, 28, 30, 0.1);
+}
+
+.dock-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.dock-btn--primary {
+  width: 60px;
+  height: 60px;
   background: linear-gradient(155deg, #1a6fd6, var(--accent));
-  color: white;
-  font-size: 1.8rem;
-  font-weight: 300;
-  line-height: 1;
-  box-shadow: 0 10px 30px var(--accent-glow);
-  z-index: 20;
+  box-shadow: 0 10px 24px var(--accent-glow);
+}
+
+.dock-btn--primary .dock-icon {
+  width: 26px;
+  height: 26px;
 }
 
 /* Lightbox */
@@ -977,6 +1009,157 @@ main {
   font-size: 0.85rem;
   color: var(--text-dim);
   margin-top: 2px;
+}
+
+/* Drink picker */
+
+.drink-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.drink-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.drink-type-btn__emoji {
+  font-size: 1.8rem;
+}
+
+#drink-back {
+  padding-left: 0;
+  margin-bottom: 4px;
+}
+
+#drink-venue-search {
+  width: 100%;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  margin-top: 6px;
+}
+
+.drink-venue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.drink-venue-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  text-align: left;
+}
+
+.drink-venue-item__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.drink-venue-item__meta {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* Ranking */
+
+.ranking-champions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 22px;
+}
+
+.ranking-champion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 86, 179, 0.06);
+  border: 1px solid rgba(0, 86, 179, 0.15);
+}
+
+.ranking-champion__emoji {
+  font-size: 1.4rem;
+  flex: none;
+}
+
+.ranking-champion__text {
+  min-width: 0;
+}
+
+.ranking-champion__title {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ranking-champion__name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ranking-row__rank {
+  width: 22px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+  flex: none;
+}
+
+.ranking-row__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ranking-row__count {
+  font-weight: 700;
+  color: var(--accent);
+  flex: none;
 }
 
 .photo-strip {

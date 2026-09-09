@@ -76,7 +76,17 @@
     </div>
   </main>
 
-  <button id="fab-add" type="button" aria-label="Bar oder Café hinzufügen">+</button>
+  <div id="bottom-dock" class="bottom-dock">
+    <button id="social-btn" class="dock-btn" type="button" aria-label="Rangliste">
+      <img class="dock-icon" src="./icons/trophy.svg" alt="" />
+    </button>
+    <button id="add-drink-btn" class="dock-btn dock-btn--primary" type="button" aria-label="Getränk hinzufügen">
+      <img class="dock-icon" src="./icons/plus.svg" alt="" />
+    </button>
+    <button id="fab-add" class="dock-btn" type="button" aria-label="Bar oder Café hinzufügen">
+      <img class="dock-icon" src="./icons/bar-glass.svg" alt="" />
+    </button>
+  </div>
 
   <div id="lightbox" class="lightbox" hidden>
     <button id="lightbox-close" class="lightbox__close" type="button" aria-label="Schließen">✕</button>
@@ -218,6 +228,43 @@
             <button type="submit" class="btn btn--primary">Speichern</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="drink-sheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <button class="sheet__close" id="drink-close" type="button" aria-label="Schließen">✕</button>
+      <div class="sheet__body">
+        <h2>Getränk hinzufügen</h2>
+
+        <div id="drink-step-type">
+          <p class="field-label">Was trinkst du?</p>
+          <div id="drink-type-grid" class="drink-type-grid"></div>
+        </div>
+
+        <div id="drink-step-venue" hidden>
+          <button id="drink-back" type="button" class="text-action">‹ Zurück</button>
+          <p class="field-label">Wo bist du?</p>
+          <input id="drink-venue-search" type="text" placeholder="Bar oder Café suchen…" />
+          <div id="drink-venue-list" class="drink-venue-list"></div>
+        </div>
+
+        <p id="drink-status" class="field-hint" hidden></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="ranking-sheet" class="sheet-backdrop" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet__handle"></div>
+      <button class="sheet__close" id="ranking-close" type="button" aria-label="Schließen">✕</button>
+      <div class="sheet__body">
+        <h2>Rangliste</h2>
+        <div id="ranking-champions" class="ranking-champions"></div>
+        <div id="ranking-list" class="ranking-list"></div>
+        <p id="ranking-empty" class="empty-state__subtitle" hidden>Noch keine Getränke eingetragen.</p>
       </div>
     </div>
   </div>

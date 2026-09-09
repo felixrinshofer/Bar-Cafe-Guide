@@ -3,7 +3,18 @@ import { haversineDistanceKm, formatDistance, getCurrentPosition } from "./geo.j
 import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.js";
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
-import { subscribeVenues, putVenue, deleteVenue, createId, onAuthChange, registerUser, loginUser, logoutUser } from "./firebase.js";
+import {
+  subscribeVenues,
+  putVenue,
+  deleteVenue,
+  createId,
+  onAuthChange,
+  registerUser,
+  loginUser,
+  logoutUser,
+  subscribeDrinks,
+  addDrink
+} from "./firebase.js";
 import { fileToCompressedBase64, urlToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
 import { searchPlaces, fetchCommonsImageUrl } from "./placesearch.js";
@@ -12,6 +23,14 @@ const TYPE_ORDER = ["bar", "cafe", "dancebar", "club", "restaurant"];
 const TYPE_LABELS = { bar: "Bar", cafe: "Café", dancebar: "Tanzbar", club: "Club", restaurant: "Restaurant" };
 const TYPE_EMOJI = { bar: "🍸", cafe: "☕", dancebar: "💃", club: "🪩", restaurant: "🍽️" };
 const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
+const DRINK_TYPES = [
+  { id: "beer", label: "Bier", emoji: "🍺" },
+  { id: "wine", label: "Wein", emoji: "🍷" },
+  { id: "aperol", label: "Aperol", emoji: "🥂" },
+  { id: "cocktail", label: "Cocktail", emoji: "🍸" },
+  { id: "coffee", label: "Caffè", emoji: "☕" }
+];
+const DRINK_LOOKUP = Object.fromEntries(DRINK_TYPES.map(d => [d.id, d]));
 const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer für andere Felder lassen
 
 const state = {
@@ -22,10 +41,14 @@ const state = {
   distances: {},
   view: "list",
   loaded: false,
-  user: null
+  user: null,
+  drinks: []
 };
 
 let authMode = "login";
+let pendingRegisterName = null;
+const knownDisplayNames = {};
+let selectedDrinkType = null;
 
 let mapInitialized = false;
 
@@ -127,7 +150,26 @@ const el = {
   accountAvatar: document.getElementById("account-avatar"),
   accountName: document.getElementById("account-name"),
   accountEmail: document.getElementById("account-email"),
-  accountLogout: document.getElementById("account-logout")
+  accountLogout: document.getElementById("account-logout"),
+
+  socialBtn: document.getElementById("social-btn"),
+  addDrinkBtn: document.getElementById("add-drink-btn"),
+
+  drinkSheet: document.getElementById("drink-sheet"),
+  drinkClose: document.getElementById("drink-close"),
+  drinkStepType: document.getElementById("drink-step-type"),
+  drinkTypeGrid: document.getElementById("drink-type-grid"),
+  drinkStepVenue: document.getElementById("drink-step-venue"),
+  drinkBack: document.getElementById("drink-back"),
+  drinkVenueSearch: document.getElementById("drink-venue-search"),
+  drinkVenueList: document.getElementById("drink-venue-list"),
+  drinkStatus: document.getElementById("drink-status"),
+
+  rankingSheet: document.getElementById("ranking-sheet"),
+  rankingClose: document.getElementById("ranking-close"),
+  rankingChampions: document.getElementById("ranking-champions"),
+  rankingList: document.getElementById("ranking-list"),
+  rankingEmpty: document.getElementById("ranking-empty")
 };
 
 function toggleInArray(arr, value) {
@@ -810,13 +852,18 @@ async function handleAuthSubmit(e) {
   el.authError.hidden = true;
   el.authSubmit.disabled = true;
   try {
-    const user =
-      authMode === "register"
-        ? await registerUser(el.authEmail.value.trim(), el.authPassword.value, el.authName.value.trim())
-        : await loginUser(el.authEmail.value.trim(), el.authPassword.value);
+    let user;
+    if (authMode === "register") {
+      pendingRegisterName = el.authName.value.trim();
+      user = await registerUser(el.authEmail.value.trim(), el.authPassword.value, pendingRegisterName);
+    } else {
+      user = await loginUser(el.authEmail.value.trim(), el.authPassword.value);
+    }
     renderAccountUI(user);
+    pendingRegisterName = null;
     closeAccountSheet();
   } catch (err) {
+    pendingRegisterName = null;
     el.authError.textContent = AUTH_ERROR_MESSAGES[err.code] || "Etwas ist schiefgelaufen. Bitte erneut versuchen.";
     el.authError.hidden = false;
   } finally {
@@ -829,7 +876,8 @@ function renderAccountUI(user) {
   if (user) {
     el.accountLoggedOut.hidden = true;
     el.accountLoggedIn.hidden = false;
-    const name = user.displayName || user.email;
+    if (user.displayName) knownDisplayNames[user.uid] = user.displayName;
+    const name = user.displayName || knownDisplayNames[user.uid] || pendingRegisterName || user.email;
     const initial = name.charAt(0).toUpperCase();
     el.accountName.textContent = name;
     el.accountEmail.textContent = user.email;
@@ -842,6 +890,144 @@ function renderAccountUI(user) {
     el.accountBtn.innerHTML = '<img class="account-icon" src="./icons/account.svg" alt="" />';
     el.accountBtn.classList.remove("account-btn--active");
   }
+}
+
+function openDrinkSheet() {
+  if (!state.user) {
+    openAccountSheet();
+    return;
+  }
+  selectedDrinkType = null;
+  el.drinkStepType.hidden = false;
+  el.drinkStepVenue.hidden = true;
+  el.drinkStatus.hidden = true;
+  el.drinkVenueSearch.value = "";
+  renderDrinkTypeGrid();
+  el.drinkSheet.hidden = false;
+}
+
+function closeDrinkSheet() {
+  el.drinkSheet.hidden = true;
+}
+
+function renderDrinkTypeGrid() {
+  el.drinkTypeGrid.innerHTML = DRINK_TYPES.map(
+    d => `<button type="button" class="drink-type-btn" data-drink="${d.id}">
+      <span class="drink-type-btn__emoji">${d.emoji}</span>
+      <span>${d.label}</span>
+    </button>`
+  ).join("");
+  el.drinkTypeGrid.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedDrinkType = btn.dataset.drink;
+      el.drinkStepType.hidden = true;
+      el.drinkStepVenue.hidden = false;
+      renderDrinkVenueList("");
+    });
+  });
+}
+
+function renderDrinkVenueList(filter) {
+  const q = filter.trim().toLowerCase();
+  const venues = state.venues
+    .filter(v => !q || v.name.toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (!venues.length) {
+    el.drinkVenueList.innerHTML = `<p class="field-hint">Keine Location gefunden.</p>`;
+    return;
+  }
+
+  el.drinkVenueList.innerHTML = venues
+    .map(
+      v => `<button type="button" class="drink-venue-item" data-id="${v.id}">
+        <span class="drink-venue-item__name">${v.name}</span>
+        <span class="drink-venue-item__meta">${TYPE_LABELS[v.type]}${v.neighborhood ? " · " + v.neighborhood : ""}</span>
+      </button>`
+    )
+    .join("");
+
+  el.drinkVenueList.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const venue = state.venues.find(v => v.id === btn.dataset.id);
+      if (venue) handleSaveDrink(venue);
+    });
+  });
+}
+
+async function handleSaveDrink(venue) {
+  if (!state.user || !selectedDrinkType) return;
+  el.drinkStatus.hidden = false;
+  el.drinkStatus.textContent = "Speichern…";
+  try {
+    await addDrink({
+      uid: state.user.uid,
+      displayName: state.user.displayName || state.user.email,
+      venueId: venue.id,
+      venueName: venue.name,
+      drinkType: selectedDrinkType
+    });
+    el.drinkStatus.textContent = `${DRINK_LOOKUP[selectedDrinkType].emoji} Gespeichert!`;
+    setTimeout(closeDrinkSheet, 800);
+  } catch (err) {
+    el.drinkStatus.textContent = "Fehler beim Speichern. Bitte erneut versuchen.";
+  }
+}
+
+function openRankingSheet() {
+  renderRanking();
+  el.rankingSheet.hidden = false;
+}
+
+function closeRankingSheet() {
+  el.rankingSheet.hidden = true;
+}
+
+function renderRanking() {
+  if (!state.drinks.length) {
+    el.rankingChampions.innerHTML = "";
+    el.rankingList.innerHTML = "";
+    el.rankingEmpty.hidden = false;
+    return;
+  }
+  el.rankingEmpty.hidden = true;
+
+  const totals = {};
+  const byType = {};
+  state.drinks.forEach(d => {
+    if (!d.uid) return;
+    const name = d.displayName || "Unbekannt";
+    totals[d.uid] = totals[d.uid] || { name, count: 0 };
+    totals[d.uid].count += 1;
+
+    byType[d.drinkType] = byType[d.drinkType] || {};
+    byType[d.drinkType][d.uid] = byType[d.drinkType][d.uid] || { name, count: 0 };
+    byType[d.drinkType][d.uid].count += 1;
+  });
+
+  el.rankingChampions.innerHTML = DRINK_TYPES.map(type => {
+    const entries = Object.values(byType[type.id] || {});
+    if (!entries.length) return "";
+    const top = entries.sort((a, b) => b.count - a.count)[0];
+    return `<div class="ranking-champion">
+      <span class="ranking-champion__emoji">${type.emoji}</span>
+      <div class="ranking-champion__text">
+        <p class="ranking-champion__title">${type.label}-Champion</p>
+        <p class="ranking-champion__name">${top.name} · ${top.count}</p>
+      </div>
+    </div>`;
+  }).join("");
+
+  const ranked = Object.values(totals).sort((a, b) => b.count - a.count);
+  el.rankingList.innerHTML = ranked
+    .map(
+      (r, i) => `<div class="ranking-row">
+        <span class="ranking-row__rank">${i + 1}</span>
+        <span class="ranking-row__name">${r.name}</span>
+        <span class="ranking-row__count">${r.count}</span>
+      </div>`
+    )
+    .join("");
 }
 
 function initEvents() {
@@ -917,6 +1103,23 @@ function initEvents() {
   });
   el.authForm.addEventListener("submit", handleAuthSubmit);
   el.accountLogout.addEventListener("click", () => logoutUser());
+
+  el.addDrinkBtn.addEventListener("click", openDrinkSheet);
+  el.drinkClose.addEventListener("click", closeDrinkSheet);
+  el.drinkSheet.addEventListener("click", e => {
+    if (e.target === el.drinkSheet) closeDrinkSheet();
+  });
+  el.drinkBack.addEventListener("click", () => {
+    el.drinkStepVenue.hidden = true;
+    el.drinkStepType.hidden = false;
+  });
+  el.drinkVenueSearch.addEventListener("input", e => renderDrinkVenueList(e.target.value));
+
+  el.socialBtn.addEventListener("click", openRankingSheet);
+  el.rankingClose.addEventListener("click", closeRankingSheet);
+  el.rankingSheet.addEventListener("click", e => {
+    if (e.target === el.rankingSheet) closeRankingSheet();
+  });
 }
 
 function addCustomVibe() {
@@ -950,6 +1153,11 @@ function init() {
   initEvents();
   initHeaderShrink();
   onAuthChange(renderAccountUI);
+
+  subscribeDrinks(drinks => {
+    state.drinks = drinks;
+    if (!el.rankingSheet.hidden) renderRanking();
+  });
 
   subscribeVenues(
     venues => {
