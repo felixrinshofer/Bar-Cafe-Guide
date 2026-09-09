@@ -183,7 +183,13 @@ const el = {
   rankingList: document.getElementById("ranking-list"),
   rankingEmpty: document.getElementById("ranking-empty"),
   promilleCard: document.getElementById("promille-card"),
-  promilleValue: document.getElementById("promille-value")
+  promilleValue: document.getElementById("promille-value"),
+
+  personDrinksSheet: document.getElementById("person-drinks-sheet"),
+  personDrinksClose: document.getElementById("person-drinks-close"),
+  personDrinksName: document.getElementById("person-drinks-name"),
+  personDrinksSummary: document.getElementById("person-drinks-summary"),
+  personDrinksList: document.getElementById("person-drinks-list")
 };
 
 function toggleInArray(arr, value) {
@@ -1104,12 +1110,12 @@ function renderRanking() {
     });
 
     const rankedByBac = Object.entries(totals)
-      .map(([uid, t]) => ({ name: t.name, bac: calculateBac(drinksByUid[uid] || []) }))
+      .map(([uid, t]) => ({ uid, name: t.name, bac: calculateBac(drinksByUid[uid] || []) }))
       .sort((a, b) => b.bac - a.bac);
 
     el.rankingList.innerHTML = rankedByBac
       .map(
-        (r, i) => `<div class="ranking-row ranking-row--tile ${bacColorClass(r.bac)}">
+        (r, i) => `<div class="ranking-row ranking-row--tile ranking-row--clickable ${bacColorClass(r.bac)}" data-uid="${r.uid}" data-name="${r.name}">
           <span class="ranking-row__rank">${i + 1}</span>
           <span class="ranking-row__name">${r.name}</span>
           <span class="ranking-row__count">${r.bac.toFixed(2).replace(".", ",")}‰</span>
@@ -1117,10 +1123,12 @@ function renderRanking() {
       )
       .join("");
   } else {
-    const ranked = Object.values(totals).sort((a, b) => b.count - a.count);
+    const ranked = Object.entries(totals)
+      .map(([uid, t]) => ({ uid, name: t.name, count: t.count }))
+      .sort((a, b) => b.count - a.count);
     el.rankingList.innerHTML = ranked
       .map(
-        (r, i) => `<div class="ranking-row">
+        (r, i) => `<div class="ranking-row ranking-row--clickable" data-uid="${r.uid}" data-name="${r.name}">
           <span class="ranking-row__rank">${i + 1}</span>
           <span class="ranking-row__name">${r.name}</span>
           <span class="ranking-row__count">${r.count}</span>
@@ -1128,6 +1136,54 @@ function renderRanking() {
       )
       .join("");
   }
+
+  el.rankingList.querySelectorAll(".ranking-row").forEach(row => {
+    row.addEventListener("click", () => openPersonDrinksSheet(row.dataset.uid, row.dataset.name));
+  });
+}
+
+function formatDrinkTimestamp(ts) {
+  const d = new Date(ts);
+  const time = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  if (rankingTimeframe === "today") return time;
+  const date = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+  return `${date} · ${time}`;
+}
+
+function openPersonDrinksSheet(uid, name) {
+  const personDrinks = state.drinks
+    .filter(d => d.uid === uid && isInTimeframe(d.createdAt, rankingTimeframe))
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  el.personDrinksName.textContent = name;
+
+  const counts = {};
+  personDrinks.forEach(d => {
+    counts[d.drinkType] = (counts[d.drinkType] || 0) + 1;
+  });
+  el.personDrinksSummary.innerHTML = DRINK_TYPES.filter(t => counts[t.id])
+    .map(t => `<span class="person-drinks-chip">${t.emoji} ${counts[t.id]}×</span>`)
+    .join("");
+
+  el.personDrinksList.innerHTML = personDrinks
+    .map(d => {
+      const type = DRINK_LOOKUP[d.drinkType];
+      return `<div class="person-drinks-row">
+        <span class="person-drinks-row__emoji">${type ? type.emoji : "🥤"}</span>
+        <div class="person-drinks-row__text">
+          <p class="person-drinks-row__type">${type ? type.label : d.drinkType}</p>
+          <p class="person-drinks-row__venue">${d.venueName || ""}</p>
+        </div>
+        <span class="person-drinks-row__time">${formatDrinkTimestamp(d.createdAt)}</span>
+      </div>`;
+    })
+    .join("");
+
+  el.personDrinksSheet.hidden = false;
+}
+
+function closePersonDrinksSheet() {
+  el.personDrinksSheet.hidden = true;
 }
 
 function initEvents() {
@@ -1222,6 +1278,11 @@ function initEvents() {
   });
   el.rankingFilter.querySelectorAll("button").forEach(b => {
     b.addEventListener("click", () => setRankingTimeframe(b.dataset.filter));
+  });
+
+  el.personDrinksClose.addEventListener("click", closePersonDrinksSheet);
+  el.personDrinksSheet.addEventListener("click", e => {
+    if (e.target === el.personDrinksSheet) closePersonDrinksSheet();
   });
 }
 

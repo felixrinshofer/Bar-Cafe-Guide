@@ -1090,7 +1090,7 @@ main {
 
 .promille-card {
   margin: 16px 0 22px;
-  padding: 18px;
+  padding: 26px;
   border-radius: var(--radius-md);
   background: linear-gradient(155deg, #1a6fd6, var(--accent));
   color: white;
@@ -1100,14 +1100,14 @@ main {
 
 .promille-card__value {
   display: block;
-  font-size: 2.4rem;
+  font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .promille-card__label {
-  margin: 4px 0 0;
-  font-size: 0.85rem;
+  margin: 6px 0 0;
+  font-size: 1rem;
   font-weight: 600;
   opacity: 0.9;
 }
@@ -1115,24 +1115,25 @@ main {
 /* Ranking */
 
 .ranking-champions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 16px 0 22px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin: 14px 0 20px;
 }
 
 .ranking-champion {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 6px 8px;
   border-radius: var(--radius-sm);
   background: rgba(0, 86, 179, 0.06);
   border: 1px solid rgba(0, 86, 179, 0.15);
+  min-width: 0;
 }
 
 .ranking-champion__emoji {
-  font-size: 1.4rem;
+  font-size: 1.05rem;
   flex: none;
 }
 
@@ -1141,17 +1142,23 @@ main {
 }
 
 .ranking-champion__title {
-  font-size: 0.75rem;
+  font-size: 0.58rem;
   color: var(--text-dim);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-champion__name {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ranking-list {
@@ -1217,6 +1224,73 @@ main {
 
 .ranking-row--red .ranking-row__count {
   color: #c62828;
+}
+
+.ranking-row--clickable {
+  cursor: pointer;
+}
+
+/* Person drinks */
+
+.person-drinks-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.person-drinks-chip {
+  background: rgba(0, 86, 179, 0.08);
+  border: 1px solid rgba(0, 86, 179, 0.15);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.person-drinks-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.person-drinks-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.person-drinks-row__emoji {
+  font-size: 1.3rem;
+  flex: none;
+}
+
+.person-drinks-row__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.person-drinks-row__type {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.person-drinks-row__venue {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.person-drinks-row__time {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-weight: 600;
 }
 
 .photo-strip {
