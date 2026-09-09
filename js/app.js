@@ -196,6 +196,7 @@ function renderVenueCard(v) {
         <button class="fav-btn ${isFav ? "fav-btn--active" : ""}" aria-label="Favorit" data-id="${v.id}">★</button>
       </div>
       <p class="venue-card__neighborhood">${v.neighborhood || ""}${dist !== undefined ? ` · ${formatDistance(dist)}` : ""}</p>
+      ${v.openingHours ? `<p class="venue-card__hours">🕒 ${v.openingHours}</p>` : ""}
       <div class="venue-card__vibes">
         ${(v.vibes || []).map(vb => `<span class="vibe-tag">${vb}</span>`).join("")}
       </div>

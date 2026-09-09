@@ -397,6 +397,15 @@ main {
   color: var(--text-dim);
 }
 
+.venue-card__hours {
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .venue-card__vibes {
   display: flex;
   flex-wrap: wrap;
