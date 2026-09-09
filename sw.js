@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v17";
+const CACHE_NAME = "muc-bars-v18";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -20,7 +20,9 @@ const APP_SHELL = [
   "./vendor/maplibre/maplibre-gl.mjs",
   "./vendor/maplibre/maplibre-gl-shared.mjs",
   "./vendor/maplibre/maplibre-gl-worker.mjs",
-  "./vendor/maplibre/maplibre-gl.css"
+  "./vendor/maplibre/maplibre-gl.css",
+  "./data/viertel.geojson",
+  "./data/ubahn.geojson"
 ];
 
 self.addEventListener("install", event => {

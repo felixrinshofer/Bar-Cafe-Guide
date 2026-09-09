@@ -1,4 +1,4 @@
-import { MapLibreMap, Marker, NavigationControl } from "../vendor/maplibre/maplibre-gl.mjs";
+import { MapLibreMap, Marker, NavigationControl, GeolocateControl } from "../vendor/maplibre/maplibre-gl.mjs";
 
 let map = null;
 let markers = [];
@@ -22,7 +22,70 @@ export function initMap(containerId) {
     attributionControl: { compact: true }
   });
   map.addControl(new NavigationControl({ showCompass: false }), "top-left");
+  map.addControl(
+    new GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true
+    }),
+    "top-left"
+  );
+  map.on("load", () => addOverlays(map));
   return map;
+}
+
+async function addOverlays(map) {
+  try {
+    const [viertelRes, ubahnRes] = await Promise.all([fetch("./data/viertel.geojson"), fetch("./data/ubahn.geojson")]);
+    const [viertel, ubahn] = await Promise.all([viertelRes.json(), ubahnRes.json()]);
+
+    map.addSource("viertel", { type: "geojson", data: viertel });
+    map.addLayer({
+      id: "viertel-fill",
+      type: "fill",
+      source: "viertel",
+      paint: { "fill-color": "#0056b3", "fill-opacity": 0.04 }
+    });
+    map.addLayer({
+      id: "viertel-outline",
+      type: "line",
+      source: "viertel",
+      paint: { "line-color": "#0056b3", "line-width": 1.2, "line-opacity": 0.45, "line-dasharray": [2, 2] }
+    });
+    map.addLayer({
+      id: "viertel-label",
+      type: "symbol",
+      source: "viertel",
+      layout: {
+        "text-field": ["get", "name"],
+        "text-size": 12,
+        "text-font": ["Noto Sans Bold"]
+      },
+      paint: {
+        "text-color": "#0056b3",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.4
+      }
+    });
+
+    map.addSource("ubahn", { type: "geojson", data: ubahn });
+    map.addLayer({
+      id: "ubahn-casing",
+      type: "line",
+      source: "ubahn",
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: { "line-color": "#ffffff", "line-width": 5 }
+    });
+    map.addLayer({
+      id: "ubahn-line",
+      type: "line",
+      source: "ubahn",
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: { "line-color": ["get", "colour"], "line-width": 3 }
+    });
+  } catch (err) {
+    console.warn("Overlays (Viertel/U-Bahn) konnten nicht geladen werden", err);
+  }
 }
 
 function createDotElement(color, size) {
