@@ -33,6 +33,7 @@
   --grad-spot: linear-gradient(155deg, #f472b6, #db2777);
   --grad-biergarten: linear-gradient(155deg, #ffd166, #d4a017);
   --grad-festzelt: linear-gradient(155deg, #5eead4, #0d9488);
+  --grad-favorites: linear-gradient(155deg, #fbbf24, #d97706);
 }
 
 * {
@@ -315,6 +316,7 @@ main {
 .type-tile--spot { background: var(--grad-spot); }
 .type-tile--biergarten { background: var(--grad-biergarten); }
 .type-tile--festzelt { background: var(--grad-festzelt); }
+.type-tile--favorites { background: var(--grad-favorites); }
 
 .type-tile--active {
   outline: 3px solid rgba(28, 28, 30, 0.55);

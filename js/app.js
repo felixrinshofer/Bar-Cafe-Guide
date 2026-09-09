@@ -358,6 +358,23 @@ function renderVenueCard(v) {
 function renderTypeOverview() {
   el.typeOverview.innerHTML = "";
   if (state.view !== "list" || state.venues.length === 0) return;
+
+  const favCount = state.venues.filter(v => state.favorites.has(v.id)).length;
+  const favActive = state.filters.favoritesOnly;
+  const favTile = document.createElement("button");
+  favTile.type = "button";
+  favTile.className = `type-tile type-tile--favorites${favActive ? " type-tile--active" : ""}`;
+  favTile.innerHTML = `
+    <span class="type-tile__emoji">⭐</span>
+    <span class="type-tile__label">Favoriten</span>
+    <span class="type-tile__count">${favCount} ${favCount === 1 ? "Ort" : "Orte"}</span>
+  `;
+  favTile.addEventListener("click", () => {
+    state.filters.favoritesOnly = !state.filters.favoritesOnly;
+    persistAndRender();
+  });
+  el.typeOverview.appendChild(favTile);
+
   const counts = Object.fromEntries(TYPE_ORDER.map(t => [t, 0]));
   state.venues.forEach(v => {
     if (counts[v.type] !== undefined) counts[v.type]++;
@@ -381,7 +398,7 @@ function renderTypeOverview() {
 }
 
 function render() {
-  const filtered = applyFilters(state.venues, state.filters, state.distances);
+  const filtered = applyFilters(state.venues, state.filters, state.distances, state.favorites);
   el.resultCount.textContent = state.venues.length ? `${filtered.length} von ${state.venues.length}` : "";
   el.emptyGlobal.hidden = !state.loaded || state.venues.length !== 0;
   renderTypeOverview();

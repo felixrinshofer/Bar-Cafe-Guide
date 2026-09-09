@@ -11,11 +11,13 @@ export const emptyFilters = {
   priceRanges: [],
   vibes: [],
   search: "",
+  favoritesOnly: false,
   sortBy: "name" // 'name' | 'distance' | 'price' | 'neighborhood'
 };
 
-export function applyFilters(venues, filters, distances) {
+export function applyFilters(venues, filters, distances, favorites) {
   let result = venues.filter(v => {
+    if (filters.favoritesOnly && !(favorites && favorites.has(v.id))) return false;
     if (filters.types.length && !filters.types.includes(v.type)) return false;
     if (filters.categories.length && !filters.categories.includes(v.category)) return false;
     if (filters.priceRanges.length && !filters.priceRanges.includes(v.priceRange)) return false;
