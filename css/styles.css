@@ -1086,6 +1086,32 @@ main {
   color: var(--text-dim);
 }
 
+/* Promille */
+
+.promille-card {
+  margin: 16px 0 22px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(155deg, #1a6fd6, var(--accent));
+  color: white;
+  text-align: center;
+  box-shadow: 0 10px 24px var(--accent-glow);
+}
+
+.promille-card__value {
+  display: block;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.promille-card__label {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
 /* Ranking */
 
 .ranking-champions {
@@ -1160,6 +1186,37 @@ main {
   font-weight: 700;
   color: var(--accent);
   flex: none;
+}
+
+.ranking-row--tile {
+  border-bottom: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.ranking-row--green {
+  background: rgba(52, 199, 89, 0.15);
+}
+
+.ranking-row--green .ranking-row__count {
+  color: #1b8a3a;
+}
+
+.ranking-row--yellow {
+  background: rgba(255, 204, 0, 0.22);
+}
+
+.ranking-row--yellow .ranking-row__count {
+  color: #8a6d00;
+}
+
+.ranking-row--red {
+  background: rgba(255, 59, 48, 0.16);
+}
+
+.ranking-row--red .ranking-row__count {
+  color: #c62828;
 }
 
 .photo-strip {

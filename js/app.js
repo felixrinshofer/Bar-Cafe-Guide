@@ -31,6 +31,16 @@ const DRINK_TYPES = [
   { id: "coffee", label: "Caffè", emoji: "☕" }
 ];
 const DRINK_LOOKUP = Object.fromEntries(DRINK_TYPES.map(d => [d.id, d]));
+const DRINK_ALCOHOL_GRAMS = {
+  beer: 20, // 0,5l, ~5 Vol.-%
+  wine: 19, // 0,2l Glas, ~12 Vol.-%
+  aperol: 13, // Aperol Spritz, ~200ml, ~8 Vol.-%
+  cocktail: 24, // ~200ml, ~15 Vol.-%
+  coffee: 0
+};
+const AVG_BODY_WEIGHT_KG = 75;
+const WIDMARK_R = 0.7;
+const ELIMINATION_PER_HOUR = 0.15;
 const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer für andere Felder lassen
 
 const state = {
@@ -47,6 +57,7 @@ const state = {
 
 let authMode = "login";
 let pendingRegisterName = null;
+let rankingTimeframe = "today";
 const knownDisplayNames = {};
 let selectedDrinkType = null;
 
@@ -167,9 +178,12 @@ const el = {
 
   rankingSheet: document.getElementById("ranking-sheet"),
   rankingClose: document.getElementById("ranking-close"),
+  rankingFilter: document.getElementById("ranking-filter"),
   rankingChampions: document.getElementById("ranking-champions"),
   rankingList: document.getElementById("ranking-list"),
-  rankingEmpty: document.getElementById("ranking-empty")
+  rankingEmpty: document.getElementById("ranking-empty"),
+  promilleCard: document.getElementById("promille-card"),
+  promilleValue: document.getElementById("promille-value")
 };
 
 function toggleInArray(arr, value) {
@@ -974,6 +988,34 @@ async function handleSaveDrink(venue) {
   }
 }
 
+const RANKING_EMPTY_MESSAGES = {
+  today: "Noch keine Getränke heute eingetragen.",
+  month: "Noch keine Getränke diesen Monat eingetragen.",
+  all: "Noch keine Getränke eingetragen."
+};
+
+function isInTimeframe(createdAt, timeframe) {
+  if (timeframe === "all") return true;
+  const now = new Date();
+  const d = new Date(createdAt);
+  if (timeframe === "today") {
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  }
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
+function setRankingTimeframe(timeframe) {
+  rankingTimeframe = timeframe;
+  el.rankingFilter.querySelectorAll("button").forEach(b => {
+    b.classList.toggle("chip--active", b.dataset.filter === timeframe);
+  });
+  renderRanking();
+}
+
 function openRankingSheet() {
   renderRanking();
   el.rankingSheet.hidden = false;
@@ -983,10 +1025,45 @@ function closeRankingSheet() {
   el.rankingSheet.hidden = true;
 }
 
+function calculateBac(drinks) {
+  const totalGrams = drinks.reduce((sum, d) => sum + (DRINK_ALCOHOL_GRAMS[d.drinkType] || 0), 0);
+  if (totalGrams <= 0) return 0;
+  const peakBac = totalGrams / (AVG_BODY_WEIGHT_KG * WIDMARK_R);
+  const earliest = Math.min(...drinks.map(d => d.createdAt));
+  const hoursElapsed = Math.max(0, (Date.now() - earliest) / 3600000);
+  return Math.max(0, peakBac - hoursElapsed * ELIMINATION_PER_HOUR);
+}
+
+function bacColorClass(bac) {
+  if (bac > 2.0) return "ranking-row--red";
+  if (bac >= 1.0) return "ranking-row--yellow";
+  return "ranking-row--green";
+}
+
+function updatePromilleCard() {
+  if (rankingTimeframe !== "today" || !state.user) {
+    el.promilleCard.hidden = true;
+    return;
+  }
+  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "today"));
+  if (!myDrinksToday.length) {
+    el.promilleCard.hidden = true;
+    return;
+  }
+  const bac = calculateBac(myDrinksToday);
+  el.promilleValue.textContent = bac.toFixed(2).replace(".", ",") + "‰";
+  el.promilleCard.hidden = false;
+}
+
 function renderRanking() {
-  if (!state.drinks.length) {
+  updatePromilleCard();
+
+  const drinks = state.drinks.filter(d => isInTimeframe(d.createdAt, rankingTimeframe));
+
+  if (!drinks.length) {
     el.rankingChampions.innerHTML = "";
     el.rankingList.innerHTML = "";
+    el.rankingEmpty.textContent = RANKING_EMPTY_MESSAGES[rankingTimeframe];
     el.rankingEmpty.hidden = false;
     return;
   }
@@ -994,7 +1071,7 @@ function renderRanking() {
 
   const totals = {};
   const byType = {};
-  state.drinks.forEach(d => {
+  drinks.forEach(d => {
     if (!d.uid) return;
     const name = d.displayName || "Unbekannt";
     totals[d.uid] = totals[d.uid] || { name, count: 0 };
@@ -1018,16 +1095,39 @@ function renderRanking() {
     </div>`;
   }).join("");
 
-  const ranked = Object.values(totals).sort((a, b) => b.count - a.count);
-  el.rankingList.innerHTML = ranked
-    .map(
-      (r, i) => `<div class="ranking-row">
-        <span class="ranking-row__rank">${i + 1}</span>
-        <span class="ranking-row__name">${r.name}</span>
-        <span class="ranking-row__count">${r.count}</span>
-      </div>`
-    )
-    .join("");
+  if (rankingTimeframe === "today") {
+    const drinksByUid = {};
+    drinks.forEach(d => {
+      if (!d.uid) return;
+      drinksByUid[d.uid] = drinksByUid[d.uid] || [];
+      drinksByUid[d.uid].push(d);
+    });
+
+    const rankedByBac = Object.entries(totals)
+      .map(([uid, t]) => ({ name: t.name, bac: calculateBac(drinksByUid[uid] || []) }))
+      .sort((a, b) => b.bac - a.bac);
+
+    el.rankingList.innerHTML = rankedByBac
+      .map(
+        (r, i) => `<div class="ranking-row ranking-row--tile ${bacColorClass(r.bac)}">
+          <span class="ranking-row__rank">${i + 1}</span>
+          <span class="ranking-row__name">${r.name}</span>
+          <span class="ranking-row__count">${r.bac.toFixed(2).replace(".", ",")}‰</span>
+        </div>`
+      )
+      .join("");
+  } else {
+    const ranked = Object.values(totals).sort((a, b) => b.count - a.count);
+    el.rankingList.innerHTML = ranked
+      .map(
+        (r, i) => `<div class="ranking-row">
+          <span class="ranking-row__rank">${i + 1}</span>
+          <span class="ranking-row__name">${r.name}</span>
+          <span class="ranking-row__count">${r.count}</span>
+        </div>`
+      )
+      .join("");
+  }
 }
 
 function initEvents() {
@@ -1119,6 +1219,9 @@ function initEvents() {
   el.rankingClose.addEventListener("click", closeRankingSheet);
   el.rankingSheet.addEventListener("click", e => {
     if (e.target === el.rankingSheet) closeRankingSheet();
+  });
+  el.rankingFilter.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => setRankingTimeframe(b.dataset.filter));
   });
 }
 

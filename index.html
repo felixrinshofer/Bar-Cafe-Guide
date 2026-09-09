@@ -262,6 +262,15 @@
       <button class="sheet__close" id="ranking-close" type="button" aria-label="Schließen">✕</button>
       <div class="sheet__body">
         <h2>Rangliste</h2>
+        <div id="ranking-filter" class="segmented">
+          <button type="button" class="chip--active" data-filter="today">Heute</button>
+          <button type="button" data-filter="month">Monat</button>
+          <button type="button" data-filter="all">Gesamt</button>
+        </div>
+        <div id="promille-card" class="promille-card" hidden>
+          <span id="promille-value" class="promille-card__value"></span>
+          <p class="promille-card__label">ungefährer Promillewert</p>
+        </div>
         <div id="ranking-champions" class="ranking-champions"></div>
         <div id="ranking-list" class="ranking-list"></div>
         <p id="ranking-empty" class="empty-state__subtitle" hidden>Noch keine Getränke eingetragen.</p>
