@@ -7,8 +7,9 @@ import { subscribeVenues, putVenue, deleteVenue, createId } from "./firebase.js"
 import { fileToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
 
-const TYPE_LABELS = { bar: "Bar", cafe: "Café", coffee: "Coffee" };
-const TYPE_EMOJI = { bar: "🍸", cafe: "☕", coffee: "☕" };
+const TYPE_ORDER = ["bar", "cafe", "dancebar", "club", "restaurant"];
+const TYPE_LABELS = { bar: "Bar", cafe: "Café", dancebar: "Tanzbar", club: "Club", restaurant: "Restaurant" };
+const TYPE_EMOJI = { bar: "🍸", cafe: "☕", dancebar: "💃", club: "🪩", restaurant: "🍽️" };
 const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
 const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer für andere Felder lassen
 
@@ -131,7 +132,7 @@ function renderSegmented(container, values, selectedValue, labelFn, onSelect) {
 
 function renderFilterChips() {
   const options = deriveOptions(state.venues);
-  renderChips(el.typeChips, ["bar", "cafe", "coffee"], state.filters.types, t => TYPE_LABELS[t], persistAndRender);
+  renderChips(el.typeChips, TYPE_ORDER, state.filters.types, t => TYPE_LABELS[t], persistAndRender);
   renderChips(el.categoryChips, options.categories, state.filters.categories, null, persistAndRender);
   renderChips(el.priceChips, [1, 2, 3], state.filters.priceRanges, p => PRICE_LABELS[p], persistAndRender);
   renderChips(el.vibeChips, options.vibes, state.filters.vibes, null, persistAndRender);
@@ -204,11 +205,11 @@ function renderVenueCard(v) {
 function renderTypeOverview() {
   el.typeOverview.innerHTML = "";
   if (state.view !== "list" || state.venues.length === 0) return;
-  const counts = { bar: 0, cafe: 0, coffee: 0 };
+  const counts = Object.fromEntries(TYPE_ORDER.map(t => [t, 0]));
   state.venues.forEach(v => {
     if (counts[v.type] !== undefined) counts[v.type]++;
   });
-  ["bar", "cafe", "coffee"].forEach(type => {
+  TYPE_ORDER.forEach(type => {
     if (!counts[type]) return;
     const active = state.filters.types.includes(type);
     const tile = document.createElement("button");
@@ -445,7 +446,7 @@ function openForm(venue) {
 }
 
 function renderTypeSegmented() {
-  renderSegmented(el.fType, ["bar", "cafe", "coffee"], formState.type, t => TYPE_LABELS[t], value => {
+  renderSegmented(el.fType, TYPE_ORDER, formState.type, t => TYPE_LABELS[t], value => {
     formState.type = value;
     renderTypeSegmented();
   });

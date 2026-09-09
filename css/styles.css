@@ -7,9 +7,9 @@
   --text: #1c1c1e;
   --text-dim: #6e6e73;
   --text-faint: #a1a1a6;
-  --accent: #0a84ff;
-  --accent-2: #0066cc;
-  --accent-glow: rgba(10, 132, 255, 0.35);
+  --accent: #0056b3;
+  --accent-2: #003d82;
+  --accent-glow: rgba(0, 86, 179, 0.35);
   --success: #34c759;
   --danger: #ff3b30;
   --border: rgba(60, 60, 67, 0.1);
@@ -24,7 +24,9 @@
 
   --grad-bar: linear-gradient(155deg, #ff9a56, #ff6a3d);
   --grad-cafe: linear-gradient(155deg, #a58cff, #6a5acd);
-  --grad-coffee: linear-gradient(155deg, #5fd889, #2fb866);
+  --grad-dancebar: linear-gradient(155deg, #ff8ac2, #e0459b);
+  --grad-club: linear-gradient(155deg, #22d3ee, #0e4a6b);
+  --grad-restaurant: linear-gradient(155deg, #ff8a65, #d84315);
 }
 
 * {
@@ -103,7 +105,7 @@ header {
 }
 
 #locate-btn {
-  background: linear-gradient(155deg, #3ba7ff, var(--accent));
+  background: linear-gradient(155deg, #1a6fd6, var(--accent));
   color: white;
   border: none;
   border-radius: var(--radius-sm);
@@ -281,7 +283,9 @@ main {
 
 .type-tile--bar { background: var(--grad-bar); }
 .type-tile--cafe { background: var(--grad-cafe); }
-.type-tile--coffee { background: var(--grad-coffee); }
+.type-tile--dancebar { background: var(--grad-dancebar); }
+.type-tile--club { background: var(--grad-club); }
+.type-tile--restaurant { background: var(--grad-restaurant); }
 
 .type-tile--active {
   outline: 3px solid rgba(28, 28, 30, 0.55);
@@ -318,8 +322,8 @@ main {
 }
 
 .venue-card__thumb {
-  width: 64px;
-  height: 64px;
+  width: 84px;
+  height: 84px;
   border-radius: var(--radius-sm);
   object-fit: cover;
   flex: none;
@@ -330,13 +334,15 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 2rem;
   color: white;
 }
 
 .venue-card__thumb--bar { background: var(--grad-bar); }
 .venue-card__thumb--cafe { background: var(--grad-cafe); }
-.venue-card__thumb--coffee { background: var(--grad-coffee); }
+.venue-card__thumb--dancebar { background: var(--grad-dancebar); }
+.venue-card__thumb--club { background: var(--grad-club); }
+.venue-card__thumb--restaurant { background: var(--grad-restaurant); }
 
 .venue-card__main {
   flex: 1;
@@ -446,7 +452,7 @@ main {
   height: 58px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(155deg, #3ba7ff, var(--accent));
+  background: linear-gradient(155deg, #1a6fd6, var(--accent));
   color: white;
   font-size: 1.8rem;
   font-weight: 300;
@@ -542,7 +548,7 @@ main {
 
 .detail-photos img {
   width: 100%;
-  height: 240px;
+  height: 320px;
   object-fit: cover;
   flex: none;
   scroll-snap-align: start;
@@ -722,7 +728,7 @@ main {
 }
 
 .btn--primary {
-  background: linear-gradient(155deg, #3ba7ff, var(--accent));
+  background: linear-gradient(155deg, #1a6fd6, var(--accent));
   color: white;
   box-shadow: 0 6px 16px var(--accent-glow);
 }

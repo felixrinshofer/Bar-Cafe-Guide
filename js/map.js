@@ -4,7 +4,13 @@ let map = null;
 let markers = [];
 let userMarker = null;
 
-const TYPE_COLORS = { bar: "#ff6a3d", cafe: "#6a5acd", coffee: "#2fb866" };
+const TYPE_COLORS = {
+  bar: "#ff6a3d",
+  cafe: "#6a5acd",
+  dancebar: "#e0459b",
+  club: "#0891b2",
+  restaurant: "#d84315"
+};
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export function initMap(containerId) {
@@ -48,7 +54,7 @@ export function setUserLocation(lat, lng) {
   if (userMarker) {
     userMarker.setLngLat([lng, lat]);
   } else {
-    const el = createDotElement("#0a84ff", 16);
+    const el = createDotElement("#0056b3", 16);
     el.style.border = "3px solid white";
     userMarker = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
   }
