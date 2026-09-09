@@ -44,13 +44,21 @@ async function addOverlays(map) {
       id: "viertel-fill",
       type: "fill",
       source: "viertel",
-      paint: { "fill-color": "#0056b3", "fill-opacity": 0.04 }
+      paint: { "fill-color": "#0056b3", "fill-opacity": 0.06 }
+    });
+    map.addLayer({
+      id: "viertel-outline-casing",
+      type: "line",
+      source: "viertel",
+      layout: { "line-join": "round" },
+      paint: { "line-color": "#ffffff", "line-width": 4.5, "line-opacity": 0.8 }
     });
     map.addLayer({
       id: "viertel-outline",
       type: "line",
       source: "viertel",
-      paint: { "line-color": "#0056b3", "line-width": 1.2, "line-opacity": 0.45, "line-dasharray": [2, 2] }
+      layout: { "line-join": "round" },
+      paint: { "line-color": "#0056b3", "line-width": 2.4, "line-opacity": 0.85, "line-dasharray": [3, 1.5] }
     });
     map.addLayer({
       id: "viertel-label",
@@ -58,13 +66,13 @@ async function addOverlays(map) {
       source: "viertel",
       layout: {
         "text-field": ["get", "name"],
-        "text-size": 12,
+        "text-size": 13,
         "text-font": ["Noto Sans Bold"]
       },
       paint: {
-        "text-color": "#0056b3",
+        "text-color": "#003d82",
         "text-halo-color": "#ffffff",
-        "text-halo-width": 1.4
+        "text-halo-width": 2
       }
     });
 
