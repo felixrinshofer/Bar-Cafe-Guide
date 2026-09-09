@@ -5,6 +5,7 @@ import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
 import { subscribeVenues, putVenue, deleteVenue, createId } from "./firebase.js";
 import { fileToCompressedBase64 } from "./image.js";
+import { parseMapLink, geocodeAddress } from "./geocode.js";
 
 const TYPE_LABELS = { bar: "Bar", cafe: "Café", coffee: "Coffee" };
 const TYPE_EMOJI = { bar: "🍸", cafe: "☕", coffee: "☕" };
@@ -29,7 +30,8 @@ const formState = {
   vibes: [],
   type: "bar",
   price: 2,
-  location: null
+  location: null,
+  mapLink: ""
 };
 
 const el = {
@@ -53,11 +55,13 @@ const el = {
   fabAdd: document.getElementById("fab-add"),
 
   detailSheet: document.getElementById("detail-sheet"),
+  detailSheetInner: document.querySelector("#detail-sheet .sheet"),
   detailClose: document.getElementById("detail-close"),
   detailPhotos: document.getElementById("detail-photos"),
   detailName: document.getElementById("detail-name"),
   detailMeta: document.getElementById("detail-meta"),
   detailAddress: document.getElementById("detail-address"),
+  detailMapLink: document.getElementById("detail-maplink"),
   detailVibes: document.getElementById("detail-vibes"),
   detailDescription: document.getElementById("detail-description"),
   detailFav: document.getElementById("detail-fav"),
@@ -65,6 +69,7 @@ const el = {
   detailDelete: document.getElementById("detail-delete"),
 
   formSheet: document.getElementById("form-sheet"),
+  formSheetInner: document.querySelector("#form-sheet .sheet"),
   formClose: document.getElementById("form-close"),
   formCancel: document.getElementById("form-cancel"),
   formTitle: document.getElementById("form-title"),
@@ -78,6 +83,8 @@ const el = {
   fVibeInput: document.getElementById("f-vibe-input"),
   fVibeAdd: document.getElementById("f-vibe-add"),
   fNeighborhood: document.getElementById("f-neighborhood"),
+  fMapLink: document.getElementById("f-maplink"),
+  fMapLinkStatus: document.getElementById("f-maplink-status"),
   fAddress: document.getElementById("f-address"),
   fLocate: document.getElementById("f-locate"),
   fLocationStatus: document.getElementById("f-location-status"),
@@ -313,6 +320,12 @@ function openDetail(id) {
   el.detailMeta.textContent = `${TYPE_LABELS[v.type]} · ${v.category || "—"} · ${PRICE_LABELS[v.priceRange]}${v.neighborhood ? " · " + v.neighborhood : ""}`;
   el.detailAddress.textContent = v.address || "";
   el.detailAddress.hidden = !v.address;
+
+  const mapHref =
+    v.mapLink || (typeof v.lat === "number" ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null);
+  el.detailMapLink.hidden = !mapHref;
+  if (mapHref) el.detailMapLink.href = mapHref;
+
   el.detailVibes.innerHTML = (v.vibes || []).map(vb => `<span class="vibe-tag">${vb}</span>`).join("");
   el.detailDescription.textContent = v.description || "Noch keine Notizen.";
   el.detailFav.classList.toggle("fav-btn--active", state.favorites.has(v.id));
@@ -344,6 +357,7 @@ function openDetail(id) {
   };
 
   el.detailSheet.hidden = false;
+  el.detailSheetInner.scrollTop = 0;
 }
 
 function closeDetail() {
@@ -386,17 +400,18 @@ function openForm(venue) {
   formState.type = venue ? venue.type : "bar";
   formState.price = venue ? venue.priceRange : 2;
   formState.location = venue && typeof venue.lat === "number" ? { lat: venue.lat, lng: venue.lng } : null;
+  formState.mapLink = venue ? venue.mapLink || "" : "";
 
   el.fError.hidden = true;
+  el.fMapLinkStatus.textContent = "";
   el.formTitle.textContent = venue ? "Location bearbeiten" : "Neue Location";
   el.fName.value = venue ? venue.name : "";
   el.fCategory.value = venue ? venue.category || "" : "";
   el.fNeighborhood.value = venue ? venue.neighborhood || "" : "";
+  el.fMapLink.value = formState.mapLink;
   el.fAddress.value = venue ? venue.address || "" : "";
   el.fDescription.value = venue ? venue.description || "" : "";
-  el.fLocationStatus.textContent = formState.location
-    ? `📍 Standort gesetzt (${formState.location.lat.toFixed(4)}, ${formState.location.lng.toFixed(4)})`
-    : "Noch kein Standort gesetzt – Karte/Entfernung funktioniert erst danach.";
+  updateLocationStatus();
 
   renderTypeSegmented();
   renderPriceSegmented();
@@ -405,6 +420,7 @@ function openForm(venue) {
   renderFormPhotos();
 
   el.formSheet.hidden = false;
+  el.formSheetInner.scrollTop = 0;
 }
 
 function renderTypeSegmented() {
@@ -427,13 +443,19 @@ function closeForm() {
   el.form.reset();
 }
 
+function updateLocationStatus() {
+  el.fLocationStatus.textContent = formState.location
+    ? `📍 Standort gesetzt (${formState.location.lat.toFixed(4)}, ${formState.location.lng.toFixed(4)})`
+    : "Noch kein Standort gesetzt – Karte/Entfernung funktioniert erst danach.";
+}
+
 async function handleFormLocate() {
   el.fLocate.disabled = true;
   el.fLocate.textContent = "Suche…";
   try {
     const pos = await getCurrentPosition();
     formState.location = pos;
-    el.fLocationStatus.textContent = `📍 Standort gesetzt (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
+    updateLocationStatus();
   } catch (err) {
     el.fLocationStatus.textContent = "Standort nicht verfügbar.";
     console.warn(err);
@@ -441,6 +463,67 @@ async function handleFormLocate() {
     el.fLocate.disabled = false;
     el.fLocate.textContent = "📍 Aktuellen Standort verwenden";
   }
+}
+
+async function handleMapLinkBlur() {
+  const value = el.fMapLink.value.trim();
+  formState.mapLink = value;
+  if (!value) {
+    el.fMapLinkStatus.textContent = "";
+    return;
+  }
+
+  const parsed = parseMapLink(value);
+  if (!parsed) {
+    el.fMapLinkStatus.textContent = "Konnte aus dem Link nichts auslesen. Adresse unten manuell eintragen.";
+    return;
+  }
+  if (parsed.shortLink) {
+    el.fMapLinkStatus.textContent = "Kurzlinks (maps.app.goo.gl) können nicht automatisch gelesen werden – bitte Adresse unten manuell eintragen. Der Link wird trotzdem gespeichert und ist später abrufbar.";
+    return;
+  }
+
+  if (parsed.address && !el.fAddress.value.trim()) {
+    el.fAddress.value = parsed.address;
+  }
+  if (parsed.name && !el.fName.value.trim()) {
+    el.fName.value = parsed.name;
+  }
+
+  if (parsed.lat !== null && parsed.lng !== null) {
+    formState.location = { lat: parsed.lat, lng: parsed.lng };
+    updateLocationStatus();
+    el.fMapLinkStatus.textContent = "✓ Standort aus Link übernommen.";
+  } else if (el.fAddress.value.trim()) {
+    el.fMapLinkStatus.textContent = "Adresse übernommen – suche Standort dafür…";
+    await geocodeAddressField();
+  } else {
+    el.fMapLinkStatus.textContent = "Name/Adresse übernommen, aber kein Standort im Link gefunden.";
+  }
+}
+
+async function geocodeAddressField() {
+  const query = [el.fAddress.value.trim(), el.fNeighborhood.value.trim(), "München"].filter(Boolean).join(", ");
+  if (!el.fAddress.value.trim()) return;
+  try {
+    const result = await geocodeAddress(query);
+    if (result) {
+      formState.location = { lat: result.lat, lng: result.lng };
+      updateLocationStatus();
+      el.fMapLinkStatus.textContent = "✓ Standort zur Adresse gefunden.";
+    } else {
+      el.fMapLinkStatus.textContent = "Adresse nicht gefunden. Standort ggf. per GPS oder Link setzen.";
+    }
+  } catch (err) {
+    console.warn(err);
+    el.fMapLinkStatus.textContent = "Geocoding gerade nicht erreichbar.";
+  }
+}
+
+async function handleAddressBlur() {
+  if (!el.fAddress.value.trim()) return;
+  el.fMapLinkStatus.textContent = "Suche Standort für die Adresse…";
+  await geocodeAddressField();
 }
 
 async function handlePhotoInputChange(e) {
@@ -476,6 +559,7 @@ async function handleFormSubmit(e) {
     vibes: [...formState.vibes],
     neighborhood: el.fNeighborhood.value.trim(),
     address: el.fAddress.value.trim(),
+    mapLink: el.fMapLink.value.trim(),
     lat: formState.location ? formState.location.lat : null,
     lng: formState.location ? formState.location.lng : null,
     description: el.fDescription.value.trim(),
@@ -540,6 +624,8 @@ function initEvents() {
   });
   el.form.addEventListener("submit", handleFormSubmit);
   el.fLocate.addEventListener("click", handleFormLocate);
+  el.fMapLink.addEventListener("blur", handleMapLinkBlur);
+  el.fAddress.addEventListener("blur", handleAddressBlur);
   el.fPhotoAdd.addEventListener("click", () => el.fPhotoInput.click());
   el.fPhotoInput.addEventListener("change", handlePhotoInputChange);
   el.fVibeAdd.addEventListener("click", addCustomVibe);

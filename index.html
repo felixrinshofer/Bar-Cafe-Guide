@@ -84,6 +84,7 @@
         </div>
         <p id="detail-meta" class="detail-meta"></p>
         <p id="detail-address" class="detail-meta"></p>
+        <a id="detail-maplink" class="detail-maplink" href="#" target="_blank" rel="noopener" hidden>📍 In Maps öffnen</a>
         <div id="detail-vibes" class="venue-card__vibes"></div>
         <p id="detail-description" class="detail-description"></p>
         <div class="action-tiles">
@@ -132,7 +133,11 @@
           <label class="field-label" for="f-neighborhood">Stadtteil</label>
           <input id="f-neighborhood" type="text" placeholder="z.B. Glockenbachviertel" />
 
-          <label class="field-label" for="f-address">Adresse (optional)</label>
+          <label class="field-label" for="f-maplink">Maps-Link (optional)</label>
+          <input id="f-maplink" type="text" inputmode="url" placeholder="Link aus Apple/Google Maps einfügen" />
+          <p id="f-maplink-status" class="field-hint"></p>
+
+          <label class="field-label" for="f-address">Adresse</label>
           <input id="f-address" type="text" placeholder="Straße, PLZ Ort" />
 
           <p class="field-label">Standort</p>
