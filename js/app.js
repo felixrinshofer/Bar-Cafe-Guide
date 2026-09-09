@@ -59,9 +59,7 @@ const el = {
   detailClose: document.getElementById("detail-close"),
   detailPhotos: document.getElementById("detail-photos"),
   detailName: document.getElementById("detail-name"),
-  detailMeta: document.getElementById("detail-meta"),
-  detailAddress: document.getElementById("detail-address"),
-  detailMapLink: document.getElementById("detail-maplink"),
+  detailInfoTiles: document.getElementById("detail-info-tiles"),
   detailVibes: document.getElementById("detail-vibes"),
   detailDescription: document.getElementById("detail-description"),
   detailFav: document.getElementById("detail-fav"),
@@ -317,15 +315,37 @@ function openDetail(id) {
   });
 
   el.detailName.textContent = v.name;
-  el.detailMeta.textContent = `${TYPE_LABELS[v.type]} · ${v.category || "—"} · ${PRICE_LABELS[v.priceRange]}${v.neighborhood ? " · " + v.neighborhood : ""}`;
-  el.detailAddress.textContent = v.address || "";
-  el.detailAddress.hidden = !v.address;
 
   const mapHref =
     v.mapLink || (typeof v.lat === "number" ? `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}` : null);
-  el.detailMapLink.hidden = !mapHref;
-  if (mapHref) el.detailMapLink.href = mapHref;
 
+  const tiles = [
+    { label: "Typ", value: `${TYPE_EMOJI[v.type] || "📍"} ${TYPE_LABELS[v.type]}` },
+    { label: "Preis", value: PRICE_LABELS[v.priceRange] },
+    { label: "Kategorie", value: v.category || "—", muted: !v.category },
+    { label: "Stadtteil", value: v.neighborhood || "—", muted: !v.neighborhood }
+  ];
+
+  let tilesHtml = tiles
+    .map(
+      t => `
+    <div class="info-tile">
+      <span class="info-tile__label">${t.label}</span>
+      <span class="info-tile__value${t.muted ? " info-tile__value--muted" : ""}">${t.value}</span>
+    </div>`
+    )
+    .join("");
+
+  if (v.address || mapHref) {
+    tilesHtml += `
+    <div class="info-tile info-tile--wide">
+      <span class="info-tile__label">Adresse</span>
+      <span class="info-tile__value${v.address ? "" : " info-tile__value--muted"}">${v.address || "Keine Adresse hinterlegt"}</span>
+      ${mapHref ? `<a class="detail-maplink" href="${mapHref}" target="_blank" rel="noopener">📍 In Maps öffnen</a>` : ""}
+    </div>`;
+  }
+
+  el.detailInfoTiles.innerHTML = tilesHtml;
   el.detailVibes.innerHTML = (v.vibes || []).map(vb => `<span class="vibe-tag">${vb}</span>`).join("");
   el.detailDescription.textContent = v.description || "Noch keine Notizen.";
   el.detailFav.classList.toggle("fav-btn--active", state.favorites.has(v.id));
