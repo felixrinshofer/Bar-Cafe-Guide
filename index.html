@@ -19,9 +19,6 @@
   <header id="app-header">
     <h1 class="app-logo-wrap">
       <img id="app-logo" class="app-logo" src="./icons/logo.svg" alt="Bar Café Guide" />
-      <button id="account-btn" class="account-btn" type="button" aria-label="Account">
-        <img class="account-icon" src="./icons/account.svg" alt="" />
-      </button>
     </h1>
     <div class="search-row">
       <input id="search-input" type="search" placeholder="Suche nach Name, Kategorie, Viertel…" />
@@ -29,10 +26,6 @@
     </div>
 
     <div class="control-row">
-      <div id="view-toggle">
-        <button class="chip chip--active" data-view="list" type="button">Liste</button>
-        <button class="chip" data-view="map" type="button">Karte</button>
-      </div>
       <select id="sort-select">
         <option value="name">Name A-Z</option>
         <option value="distance">Entfernung</option>
@@ -72,11 +65,14 @@
     <div id="empty-state-global" class="empty-state" hidden>
       <span class="empty-state__icon">🍸</span>
       <p class="empty-state__title">Noch keine Locations</p>
-      <p class="empty-state__subtitle">Tipp unten rechts auf „+“, um deine erste Bar oder dein erstes Café hinzuzufügen.</p>
+      <p class="empty-state__subtitle">Tipp unten auf „+“, um deine erste Bar oder dein erstes Café hinzuzufügen.</p>
     </div>
   </main>
 
   <div id="bottom-dock" class="bottom-dock">
+    <button id="map-btn" class="dock-btn" type="button" aria-label="Karte">
+      <img class="dock-icon" src="./icons/map.svg" alt="" />
+    </button>
     <button id="social-btn" class="dock-btn" type="button" aria-label="Rangliste">
       <img class="dock-icon" src="./icons/trophy.svg" alt="" />
     </button>
@@ -85,6 +81,9 @@
     </button>
     <button id="fab-add" class="dock-btn" type="button" aria-label="Bar oder Café hinzufügen">
       <img class="dock-icon" src="./icons/bar-glass.svg" alt="" />
+    </button>
+    <button id="account-btn" class="dock-btn" type="button" aria-label="Profil">
+      <img class="dock-icon" src="./icons/account.svg" alt="" />
     </button>
   </div>
 

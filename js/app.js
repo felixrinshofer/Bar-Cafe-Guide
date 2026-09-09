@@ -87,7 +87,7 @@ const el = {
   vibeChips: document.getElementById("vibe-chips"),
   sortSelect: document.getElementById("sort-select"),
   locateBtn: document.getElementById("locate-btn"),
-  viewToggle: document.getElementById("view-toggle"),
+  mapBtn: document.getElementById("map-btn"),
   resultCount: document.getElementById("result-count"),
   resetBtn: document.getElementById("reset-filters"),
   filterToggle: document.getElementById("filter-toggle"),
@@ -396,9 +396,7 @@ function setView(view) {
   state.view = view;
   el.mapContainer.hidden = view !== "map";
   el.list.hidden = view === "map";
-  el.viewToggle.querySelectorAll("button").forEach(b => {
-    b.classList.toggle("chip--active", b.dataset.view === view);
-  });
+  el.mapBtn.classList.toggle("dock-btn--on", view === "map");
   if (view === "map") {
     if (!mapInitialized) {
       initMap("map");
@@ -918,7 +916,7 @@ function renderAccountUI(user) {
   } else {
     el.accountLoggedOut.hidden = false;
     el.accountLoggedIn.hidden = true;
-    el.accountBtn.innerHTML = '<img class="account-icon" src="./icons/account.svg" alt="" />';
+    el.accountBtn.innerHTML = '<img class="dock-icon" src="./icons/account.svg" alt="" />';
     el.accountBtn.classList.remove("account-btn--active");
   }
 }
@@ -1479,9 +1477,7 @@ function initEvents() {
     state.filters = structuredClone(emptyFilters);
     persistAndRender();
   });
-  el.viewToggle.querySelectorAll("button").forEach(b => {
-    b.addEventListener("click", () => setView(b.dataset.view));
-  });
+  el.mapBtn.addEventListener("click", () => setView(state.view === "map" ? "list" : "map"));
   el.filterToggle.addEventListener("click", () => {
     const expanded = el.filterToggle.getAttribute("aria-expanded") === "true";
     el.filterToggle.setAttribute("aria-expanded", String(!expanded));

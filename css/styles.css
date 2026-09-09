@@ -75,55 +75,15 @@ header {
 }
 
 .app-logo-wrap {
-  position: relative;
   margin: 0 0 12px;
   display: flex;
   justify-content: center;
-}
-
-.account-btn {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-  width: 43px;
-  height: 43px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  color: var(--accent);
-  font-size: 1.1rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-float);
-  z-index: 2;
-  transition: width 0.7s var(--ease-liquid), height 0.7s var(--ease-liquid);
-}
-
-.account-icon {
-  width: 27px;
-  height: 27px;
-  display: block;
 }
 
 .account-btn--active {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
-}
-
-#app-header.header--scrolled .account-btn {
-  width: 30px;
-  height: 30px;
-}
-
-#app-header.header--scrolled .account-icon {
-  width: 19px;
-  height: 19px;
 }
 
 .app-logo {
@@ -282,12 +242,6 @@ header {
   font-weight: 500;
   margin-top: 2px;
   padding: 4px 0;
-}
-
-#view-toggle {
-  display: flex;
-  gap: 6px;
-  flex: none;
 }
 
 #filter-panel {
@@ -528,8 +482,8 @@ main {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 25px;
-  padding: 8px 31px;
+  gap: 12px;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--glass);
   backdrop-filter: var(--blur);
@@ -541,8 +495,8 @@ main {
 
 .dock-btn {
   flex: none;
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.6);
@@ -553,21 +507,30 @@ main {
 }
 
 .dock-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: block;
 }
 
 .dock-btn--primary {
-  width: 60px;
-  height: 60px;
+  width: 55px;
+  height: 55px;
   background: linear-gradient(155deg, #1a6fd6, var(--accent));
   box-shadow: 0 10px 24px var(--accent-glow);
 }
 
 .dock-btn--primary .dock-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
+}
+
+.dock-btn--on {
+  background: var(--accent);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.dock-btn--on .dock-icon {
+  filter: brightness(0) invert(1);
 }
 
 /* Lightbox */
