@@ -82,14 +82,14 @@ async function addOverlays(map) {
       type: "line",
       source: "ubahn",
       layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": "#ffffff", "line-width": 5 }
+      paint: { "line-color": "#ffffff", "line-width": 5, "line-opacity": 0.55 }
     });
     map.addLayer({
       id: "ubahn-line",
       type: "line",
       source: "ubahn",
       layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": ["get", "colour"], "line-width": 3 }
+      paint: { "line-color": ["get", "colour"], "line-width": 3, "line-opacity": 0.65 }
     });
   } catch (err) {
     console.warn("Overlays (Viertel/U-Bahn) konnten nicht geladen werden", err);
