@@ -16,8 +16,10 @@
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
-  <header>
-    <h1>München Bars & Cafés</h1>
+  <header id="app-header">
+    <h1 class="app-logo-wrap">
+      <img id="app-logo" class="app-logo" src="./icons/logo.svg" alt="München Bars & Cafés" />
+    </h1>
     <div class="search-row">
       <input id="search-input" type="search" placeholder="Suche nach Name, Kategorie, Viertel…" />
       <button id="locate-btn">📍 In meiner Nähe</button>
@@ -32,6 +34,7 @@
         <option value="name">Name A-Z</option>
         <option value="distance">Entfernung</option>
         <option value="price">Preis</option>
+        <option value="neighborhood">Stadtteil</option>
       </select>
       <button id="filter-toggle" type="button" aria-expanded="false">Filter ▾</button>
     </div>

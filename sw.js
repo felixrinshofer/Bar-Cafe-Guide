@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v9";
+const CACHE_NAME = "muc-bars-v10";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -15,6 +15,7 @@ const APP_SHELL = [
   "./js/geocode.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/logo.svg",
   "./vendor/leaflet/leaflet.js",
   "./vendor/leaflet/leaflet.css",
   "./vendor/leaflet/images/marker-icon.png",

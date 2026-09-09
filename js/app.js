@@ -35,6 +35,7 @@ const formState = {
 };
 
 const el = {
+  appHeader: document.getElementById("app-header"),
   list: document.getElementById("venue-list"),
   typeOverview: document.getElementById("type-overview"),
   mapContainer: document.getElementById("map"),
@@ -666,8 +667,27 @@ function addCustomVibe() {
   }
 }
 
+const SCROLL_SHRINK_THRESHOLD = 16;
+let scrollTicking = false;
+
+function initHeaderShrink() {
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        el.appHeader.classList.toggle("header--scrolled", window.scrollY > SCROLL_SHRINK_THRESHOLD);
+        scrollTicking = false;
+      });
+    },
+    { passive: true }
+  );
+}
+
 function init() {
   initEvents();
+  initHeaderShrink();
 
   subscribeVenues(
     venues => {

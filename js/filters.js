@@ -11,7 +11,7 @@ export const emptyFilters = {
   priceRanges: [],
   vibes: [],
   search: "",
-  sortBy: "name" // 'name' | 'distance' | 'price'
+  sortBy: "name" // 'name' | 'distance' | 'price' | 'neighborhood'
 };
 
 export function applyFilters(venues, filters, distances) {
@@ -32,6 +32,14 @@ export function applyFilters(venues, filters, distances) {
     result = [...result].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity));
   } else if (filters.sortBy === "price") {
     result = [...result].sort((a, b) => a.priceRange - b.priceRange);
+  } else if (filters.sortBy === "neighborhood") {
+    result = [...result].sort((a, b) => {
+      const na = a.neighborhood || "";
+      const nb = b.neighborhood || "";
+      if (!na && nb) return 1;
+      if (na && !nb) return -1;
+      return na.localeCompare(nb, "de") || a.name.localeCompare(b.name, "de");
+    });
   } else {
     result = [...result].sort((a, b) => a.name.localeCompare(b.name, "de"));
   }
