@@ -30,6 +30,9 @@
   --grad-dancebar: linear-gradient(155deg, #4ade80, #16a34a);
   --grad-club: linear-gradient(155deg, #ffa94d, #f76707);
   --grad-restaurant: linear-gradient(155deg, #b794f6, #7c3aed);
+  --grad-spot: linear-gradient(155deg, #f472b6, #db2777);
+  --grad-biergarten: linear-gradient(155deg, #ffd166, #d4a017);
+  --grad-festzelt: linear-gradient(155deg, #5eead4, #0d9488);
 }
 
 * {
@@ -278,6 +281,13 @@ main {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.type-overview::-webkit-scrollbar {
+  display: none;
 }
 
 .type-overview:empty {
@@ -285,7 +295,7 @@ main {
 }
 
 .type-tile {
-  flex: 1 1 0;
+  flex: 0 0 calc((100% - 24px) / 4);
   min-width: 0;
   border: none;
   border-radius: var(--radius-md);
@@ -302,6 +312,9 @@ main {
 .type-tile--dancebar { background: var(--grad-dancebar); }
 .type-tile--club { background: var(--grad-club); }
 .type-tile--restaurant { background: var(--grad-restaurant); }
+.type-tile--spot { background: var(--grad-spot); }
+.type-tile--biergarten { background: var(--grad-biergarten); }
+.type-tile--festzelt { background: var(--grad-festzelt); }
 
 .type-tile--active {
   outline: 3px solid rgba(28, 28, 30, 0.55);
@@ -365,6 +378,9 @@ main {
 .venue-card__thumb--dancebar { background: var(--grad-dancebar); }
 .venue-card__thumb--club { background: var(--grad-club); }
 .venue-card__thumb--restaurant { background: var(--grad-restaurant); }
+.venue-card__thumb--spot { background: var(--grad-spot); }
+.venue-card__thumb--biergarten { background: var(--grad-biergarten); }
+.venue-card__thumb--festzelt { background: var(--grad-festzelt); }
 
 .venue-card__main {
   flex: 1;
@@ -849,7 +865,8 @@ main {
 #venue-form input[type="search"],
 #venue-form textarea,
 #place-search-input,
-#auth-form input {
+#auth-form input,
+#profile-weight {
   width: 100%;
   background: var(--surface-solid);
   border: 1px solid var(--border);
@@ -924,6 +941,10 @@ main {
   background: rgba(60, 60, 67, 0.08);
   color: var(--text);
   width: 100%;
+}
+
+#account-logout {
+  margin-top: 14px;
 }
 
 .btn--danger {

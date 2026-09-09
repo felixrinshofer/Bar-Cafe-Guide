@@ -4,7 +4,7 @@ const MUC_VIEWBOX = "11.35,48.25,11.75,48.02";
 const OSM_TYPE_MAP = {
   bar: "bar",
   pub: "bar",
-  biergarten: "bar",
+  biergarten: "biergarten",
   cafe: "cafe",
   nightclub: "club",
   restaurant: "restaurant",

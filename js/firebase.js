@@ -65,12 +65,14 @@ export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
-export async function registerUser(email, password, displayName) {
+export async function registerUser(email, password, displayName, gender, weightKg) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(cred.user, { displayName });
   await setDoc(doc(usersCol, cred.user.uid), {
     displayName,
     email,
+    gender,
+    weightKg,
     createdAt: Date.now()
   });
   return cred.user;
@@ -100,4 +102,19 @@ export async function addDrink(drink) {
   const id = doc(drinksCol).id;
   await setDoc(doc(drinksCol, id), { ...drink, createdAt: Date.now() });
   return id;
+}
+
+export function subscribeUserProfiles(onChange, onError) {
+  return onSnapshot(
+    usersCol,
+    snapshot => onChange(snapshot.docs.map(d => ({ uid: d.id, ...d.data() }))),
+    err => {
+      console.error("Firestore-Verbindung (users) fehlgeschlagen", err);
+      if (onError) onError(err);
+    }
+  );
+}
+
+export async function updateUserProfile(uid, data) {
+  await setDoc(doc(usersCol, uid), data, { merge: true });
 }

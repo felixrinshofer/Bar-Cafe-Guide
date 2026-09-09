@@ -13,15 +13,35 @@ import {
   loginUser,
   logoutUser,
   subscribeDrinks,
-  addDrink
+  addDrink,
+  subscribeUserProfiles,
+  updateUserProfile
 } from "./firebase.js";
 import { fileToCompressedBase64, urlToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
 import { searchPlaces, fetchCommonsImageUrl } from "./placesearch.js";
 
-const TYPE_ORDER = ["bar", "cafe", "dancebar", "club", "restaurant"];
-const TYPE_LABELS = { bar: "Bar", cafe: "Café", dancebar: "Tanzbar", club: "Club", restaurant: "Restaurant" };
-const TYPE_EMOJI = { bar: "🍸", cafe: "☕", dancebar: "💃", club: "🪩", restaurant: "🍽️" };
+const TYPE_ORDER = ["bar", "cafe", "dancebar", "club", "restaurant", "spot", "biergarten", "festzelt"];
+const TYPE_LABELS = {
+  bar: "Bar",
+  cafe: "Café",
+  dancebar: "Tanzbar",
+  club: "Club",
+  restaurant: "Restaurant",
+  spot: "Spot",
+  biergarten: "Biergarten",
+  festzelt: "Festzelt"
+};
+const TYPE_EMOJI = {
+  bar: "🍸",
+  cafe: "☕",
+  dancebar: "💃",
+  club: "🪩",
+  restaurant: "🍽️",
+  spot: "📍",
+  biergarten: "🍺",
+  festzelt: "🎪"
+};
 const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
 const DRINK_TYPES = [
   { id: "beer", label: "Bier", emoji: "🍺" },
@@ -39,8 +59,22 @@ const DRINK_ALCOHOL_GRAMS = {
   coffee: 0
 };
 const AVG_BODY_WEIGHT_KG = 75;
-const WIDMARK_R = 0.7;
 const ELIMINATION_PER_HOUR = 0.15;
+const GENDER_OPTIONS = [
+  { id: "male", label: "Männlich", r: 0.7 },
+  { id: "female", label: "Weiblich", r: 0.6 },
+  { id: "other", label: "Divers", r: 0.65 }
+];
+const GENDER_LOOKUP = Object.fromEntries(GENDER_OPTIONS.map(g => [g.id, g]));
+const DEFAULT_GENDER = "other";
+
+function getUserR(profile) {
+  return GENDER_LOOKUP[profile?.gender]?.r ?? GENDER_LOOKUP[DEFAULT_GENDER].r;
+}
+
+function getUserWeight(profile) {
+  return profile?.weightKg && profile.weightKg > 0 ? profile.weightKg : AVG_BODY_WEIGHT_KG;
+}
 const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer für andere Felder lassen
 
 const state = {
@@ -52,11 +86,14 @@ const state = {
   view: "list",
   loaded: false,
   user: null,
-  drinks: []
+  drinks: [],
+  userProfiles: {}
 };
 
 let authMode = "login";
 let pendingRegisterName = null;
+let registerGenderValue = "other";
+let editGenderValue = "other";
 let rankingTimeframe = "today";
 let profileCalendarOffset = 0;
 const knownDisplayNames = {};
@@ -157,11 +194,19 @@ const el = {
   authName: document.getElementById("auth-name"),
   authEmail: document.getElementById("auth-email"),
   authPassword: document.getElementById("auth-password"),
+  authWeightLabel: document.getElementById("auth-weight-label"),
+  authWeight: document.getElementById("auth-weight"),
+  authGenderLabel: document.getElementById("auth-gender-label"),
+  authGender: document.getElementById("auth-gender"),
   authError: document.getElementById("auth-error"),
   authSubmit: document.getElementById("auth-submit"),
   accountAvatar: document.getElementById("account-avatar"),
   accountName: document.getElementById("account-name"),
   accountEmail: document.getElementById("account-email"),
+  profileWeight: document.getElementById("profile-weight"),
+  profileGender: document.getElementById("profile-gender"),
+  profileEditStatus: document.getElementById("profile-edit-status"),
+  profileSaveBtn: document.getElementById("profile-save-btn"),
   accountLogout: document.getElementById("account-logout"),
 
   socialBtn: document.getElementById("social-btn"),
@@ -318,7 +363,6 @@ function renderTypeOverview() {
     if (counts[v.type] !== undefined) counts[v.type]++;
   });
   TYPE_ORDER.forEach(type => {
-    if (!counts[type]) return;
     const active = state.filters.types.includes(type);
     const tile = document.createElement("button");
     tile.type = "button";
@@ -860,18 +904,80 @@ function setAuthMode(mode) {
   el.authNameLabel.hidden = !isRegister;
   el.authName.hidden = !isRegister;
   el.authName.required = isRegister;
+  el.authWeightLabel.hidden = !isRegister;
+  el.authWeight.hidden = !isRegister;
+  el.authWeight.required = isRegister;
+  el.authGenderLabel.hidden = !isRegister;
+  el.authGender.hidden = !isRegister;
+  if (isRegister) {
+    registerGenderValue = DEFAULT_GENDER;
+    renderRegisterGenderSegmented();
+  }
   el.authPassword.autocomplete = isRegister ? "new-password" : "current-password";
   el.authSubmit.textContent = isRegister ? "Registrieren" : "Anmelden";
   el.authError.hidden = true;
 }
 
+function renderRegisterGenderSegmented() {
+  renderSegmented(
+    el.authGender,
+    GENDER_OPTIONS.map(g => g.id),
+    registerGenderValue,
+    id => GENDER_LOOKUP[id].label,
+    value => {
+      registerGenderValue = value;
+      renderRegisterGenderSegmented();
+    }
+  );
+}
+
+function populateProfileEditFields() {
+  const profile = state.userProfiles[state.user.uid];
+  el.profileWeight.value = profile?.weightKg || "";
+  editGenderValue = profile?.gender || DEFAULT_GENDER;
+  renderEditGenderSegmented();
+}
+
+function renderEditGenderSegmented() {
+  renderSegmented(
+    el.profileGender,
+    GENDER_OPTIONS.map(g => g.id),
+    editGenderValue,
+    id => GENDER_LOOKUP[id].label,
+    value => {
+      editGenderValue = value;
+      renderEditGenderSegmented();
+    }
+  );
+}
+
+async function handleProfileSave() {
+  const weightKg = parseInt(el.profileWeight.value, 10);
+  el.profileEditStatus.hidden = false;
+  if (!weightKg || weightKg < 30 || weightKg > 250) {
+    el.profileEditStatus.textContent = "Bitte ein gültiges Gewicht angeben (30–250 kg).";
+    return;
+  }
+  el.profileSaveBtn.disabled = true;
+  try {
+    await updateUserProfile(state.user.uid, { gender: editGenderValue, weightKg });
+    el.profileEditStatus.textContent = "Gespeichert.";
+  } catch (err) {
+    el.profileEditStatus.textContent = "Fehler beim Speichern. Bitte erneut versuchen.";
+  } finally {
+    el.profileSaveBtn.disabled = false;
+  }
+}
+
 function openAccountSheet() {
+  if (state.user) populateProfileEditFields();
   el.accountSheet.hidden = false;
 }
 
 function closeAccountSheet() {
   el.accountSheet.hidden = true;
   el.authError.hidden = true;
+  el.profileEditStatus.hidden = true;
   el.authForm.reset();
   setAuthMode("login");
 }
@@ -884,7 +990,14 @@ async function handleAuthSubmit(e) {
     let user;
     if (authMode === "register") {
       pendingRegisterName = el.authName.value.trim();
-      user = await registerUser(el.authEmail.value.trim(), el.authPassword.value, pendingRegisterName);
+      const weightKg = parseInt(el.authWeight.value, 10);
+      user = await registerUser(
+        el.authEmail.value.trim(),
+        el.authPassword.value,
+        pendingRegisterName,
+        registerGenderValue,
+        weightKg
+      );
     } else {
       user = await loginUser(el.authEmail.value.trim(), el.authPassword.value);
     }
@@ -1040,19 +1153,19 @@ function closeRankingSheet() {
   el.rankingSheet.hidden = true;
 }
 
-function calculateBac(drinks) {
+function calculateBac(drinks, profile) {
   const totalGrams = drinks.reduce((sum, d) => sum + (DRINK_ALCOHOL_GRAMS[d.drinkType] || 0), 0);
   if (totalGrams <= 0) return 0;
-  const peakBac = totalGrams / (AVG_BODY_WEIGHT_KG * WIDMARK_R);
+  const peakBac = totalGrams / (getUserWeight(profile) * getUserR(profile));
   const earliest = Math.min(...drinks.map(d => d.createdAt));
   const hoursElapsed = Math.max(0, (Date.now() - earliest) / 3600000);
   return Math.max(0, peakBac - hoursElapsed * ELIMINATION_PER_HOUR);
 }
 
-function calculatePeakBacForDay(dayDrinks) {
+function calculatePeakBacForDay(dayDrinks, profile) {
   const totalGrams = dayDrinks.reduce((sum, d) => sum + (DRINK_ALCOHOL_GRAMS[d.drinkType] || 0), 0);
   if (totalGrams <= 0) return 0;
-  return totalGrams / (AVG_BODY_WEIGHT_KG * WIDMARK_R);
+  return totalGrams / (getUserWeight(profile) * getUserR(profile));
 }
 
 function startOfDay(ts) {
@@ -1111,7 +1224,7 @@ function groupByDay(drinks) {
   return byDay;
 }
 
-function getWeeklyPeakSeries(drinks, weeksCount) {
+function getWeeklyPeakSeries(drinks, weeksCount, profile) {
   const currentMonday = mondayOfWeek(Date.now());
   const series = [];
   for (let i = weeksCount - 1; i >= 0; i--) {
@@ -1124,7 +1237,7 @@ function getWeeklyPeakSeries(drinks, weeksCount) {
     const byDay = groupByDay(weekDrinks);
     let weekPeak = 0;
     Object.values(byDay).forEach(dayDrinks => {
-      const peak = calculatePeakBacForDay(dayDrinks);
+      const peak = calculatePeakBacForDay(dayDrinks, profile);
       if (peak > weekPeak) weekPeak = peak;
     });
     series.push({ weekStart, peak: weekPeak });
@@ -1148,7 +1261,7 @@ function updatePromilleCard() {
     el.promilleCard.hidden = true;
     return;
   }
-  const bac = calculateBac(myDrinksToday);
+  const bac = calculateBac(myDrinksToday, state.userProfiles[state.user.uid]);
   el.promilleValue.textContent = bac.toFixed(2).replace(".", ",") + "‰";
   el.promilleCard.hidden = false;
 }
@@ -1217,14 +1330,14 @@ function buildPromilleChartHtml(series) {
   </div>`;
 }
 
-function renderProfileWeekStats(myDrinks) {
+function renderProfileWeekStats(myDrinks, profile) {
   const monday = mondayOfWeek(Date.now());
   const weekDrinks = myDrinks.filter(d => d.createdAt >= monday.getTime());
   const days = new Set(weekDrinks.map(d => dateKey(startOfDay(d.createdAt))));
   const byDay = groupByDay(weekDrinks);
   let peak = 0;
   Object.values(byDay).forEach(dayDrinks => {
-    const p = calculatePeakBacForDay(dayDrinks);
+    const p = calculatePeakBacForDay(dayDrinks, profile);
     if (p > peak) peak = p;
   });
 
@@ -1321,9 +1434,10 @@ function renderProfileSheet() {
   el.profileAvatar.textContent = name.charAt(0).toUpperCase();
 
   const myDrinks = state.drinks.filter(d => d.uid === state.user.uid);
+  const profile = state.userProfiles[state.user.uid];
 
-  renderProfileWeekStats(myDrinks);
-  el.profileChart.innerHTML = buildPromilleChartHtml(getWeeklyPeakSeries(myDrinks, 12));
+  renderProfileWeekStats(myDrinks, profile);
+  el.profileChart.innerHTML = buildPromilleChartHtml(getWeeklyPeakSeries(myDrinks, 12, profile));
   renderProfileStreaks(myDrinks);
   renderProfileCalendar(myDrinks);
 }
@@ -1387,7 +1501,7 @@ function renderRanking() {
     });
 
     const rankedByBac = Object.entries(totals)
-      .map(([uid, t]) => ({ uid, name: t.name, bac: calculateBac(drinksByUid[uid] || []) }))
+      .map(([uid, t]) => ({ uid, name: t.name, bac: calculateBac(drinksByUid[uid] || [], state.userProfiles[uid]) }))
       .sort((a, b) => b.bac - a.bac);
 
     el.rankingList.innerHTML = rankedByBac
@@ -1484,7 +1598,13 @@ function initEvents() {
     el.filterPanel.hidden = expanded;
   });
 
-  el.fabAdd.addEventListener("click", () => openForm(null));
+  el.fabAdd.addEventListener("click", () => {
+    if (!state.user) {
+      openAccountSheet();
+      return;
+    }
+    openForm(null);
+  });
   el.detailClose.addEventListener("click", closeDetail);
   el.detailSheet.addEventListener("click", e => {
     if (e.target === el.detailSheet) closeDetail();
@@ -1548,6 +1668,7 @@ function initEvents() {
   });
   el.authForm.addEventListener("submit", handleAuthSubmit);
   el.accountLogout.addEventListener("click", () => logoutUser());
+  el.profileSaveBtn.addEventListener("click", handleProfileSave);
 
   el.addDrinkBtn.addEventListener("click", openDrinkSheet);
   el.drinkClose.addEventListener("click", closeDrinkSheet);
@@ -1597,6 +1718,77 @@ function initHeaderShrink() {
         el.appHeader.classList.toggle("header--scrolled", window.scrollY > SCROLL_SHRINK_THRESHOLD);
         scrollTicking = false;
       });
+    },
+    { passive: true }
+  );
+}
+
+function easeOutBack(t) {
+  const c1 = 0.85;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+let typeOverviewAnimating = false;
+
+function animateScrollWithBounce(container, target) {
+  const start = container.scrollLeft;
+  const distance = target - start;
+  if (Math.abs(distance) < 1) {
+    container.scrollLeft = target;
+    return;
+  }
+  typeOverviewAnimating = true;
+  const duration = 400;
+  const startTime = performance.now();
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    container.scrollLeft = start + distance * easeOutBack(t);
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      setTimeout(() => {
+        typeOverviewAnimating = false;
+      }, 50);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function snapTypeOverviewToNearestTile() {
+  const container = el.typeOverview;
+  const tiles = [...container.children];
+  if (!tiles.length) return;
+  const containerRect = container.getBoundingClientRect();
+  const containerCenter = containerRect.left + containerRect.width / 2;
+
+  let closest = tiles[0];
+  let closestDist = Infinity;
+  tiles.forEach(tile => {
+    const rect = tile.getBoundingClientRect();
+    const tileCenter = rect.left + rect.width / 2;
+    const dist = Math.abs(tileCenter - containerCenter);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closest = tile;
+    }
+  });
+
+  const closestRect = closest.getBoundingClientRect();
+  const closestCenter = closestRect.left + closestRect.width / 2;
+  const target = container.scrollLeft + (closestCenter - containerCenter);
+  animateScrollWithBounce(container, Math.max(0, target));
+}
+
+function initTypeOverviewSnap() {
+  let scrollTimeout = null;
+  el.typeOverview.addEventListener(
+    "scroll",
+    () => {
+      if (typeOverviewAnimating) return;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => snapTypeOverviewToNearestTile(), 100);
     },
     { passive: true }
   );
@@ -1694,6 +1886,7 @@ function initSheetDragToDismiss() {
 function init() {
   initEvents();
   initHeaderShrink();
+  initTypeOverviewSnap();
   initScrollLock();
   initSheetDragToDismiss();
   onAuthChange(renderAccountUI);
@@ -1702,6 +1895,13 @@ function init() {
     state.drinks = drinks;
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
+  });
+
+  subscribeUserProfiles(profiles => {
+    state.userProfiles = Object.fromEntries(profiles.map(p => [p.uid, p]));
+    if (!el.rankingSheet.hidden) renderRanking();
+    if (!el.profileSheet.hidden) renderProfileSheet();
+    if (!el.accountSheet.hidden && state.user) populateProfileEditFields();
   });
 
   subscribeVenues(

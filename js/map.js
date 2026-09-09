@@ -9,7 +9,10 @@ const TYPE_COLORS = {
   cafe: "#0056b3",
   dancebar: "#16a34a",
   club: "#f76707",
-  restaurant: "#7c3aed"
+  restaurant: "#7c3aed",
+  spot: "#db2777",
+  biergarten: "#d4a017",
+  festzelt: "#0d9488"
 };
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 

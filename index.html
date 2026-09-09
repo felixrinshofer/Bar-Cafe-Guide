@@ -136,6 +136,12 @@
             <label class="field-label" for="auth-password">Passwort</label>
             <input id="auth-password" type="password" required minlength="6" placeholder="Mind. 6 Zeichen" autocomplete="current-password" />
 
+            <label class="field-label" for="auth-weight" id="auth-weight-label" hidden>Gewicht (kg)</label>
+            <input id="auth-weight" type="number" min="30" max="250" placeholder="z.B. 75" hidden />
+
+            <p class="field-label" id="auth-gender-label" hidden>Geschlecht</p>
+            <div id="auth-gender" class="segmented" hidden></div>
+
             <p id="auth-error" class="field-error" hidden></p>
 
             <div class="sheet__actions">
@@ -152,6 +158,19 @@
               <p id="account-email" class="account-email"></p>
             </div>
           </div>
+
+          <p class="field-label">Für den Promillewert</p>
+          <label class="field-label" for="profile-weight">Gewicht (kg)</label>
+          <input id="profile-weight" type="number" min="30" max="250" />
+
+          <p class="field-label">Geschlecht</p>
+          <div id="profile-gender" class="segmented"></div>
+
+          <p id="profile-edit-status" class="field-hint" hidden></p>
+          <div class="sheet__actions">
+            <button id="profile-save-btn" type="button" class="btn btn--primary">Speichern</button>
+          </div>
+
           <button id="account-logout" type="button" class="btn btn--secondary">Abmelden</button>
         </div>
       </div>
