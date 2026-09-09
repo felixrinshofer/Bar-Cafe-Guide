@@ -4,8 +4,9 @@ import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
 import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
 import { subscribeVenues, putVenue, deleteVenue, createId } from "./firebase.js";
-import { fileToCompressedBase64 } from "./image.js";
+import { fileToCompressedBase64, urlToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
+import { searchPlaces, fetchCommonsImageUrl } from "./placesearch.js";
 
 const TYPE_ORDER = ["bar", "cafe", "dancebar", "club", "restaurant"];
 const TYPE_LABELS = { bar: "Bar", cafe: "Café", dancebar: "Tanzbar", club: "Club", restaurant: "Restaurant" };
@@ -77,6 +78,13 @@ const el = {
   formClose: document.getElementById("form-close"),
   formCancel: document.getElementById("form-cancel"),
   formTitle: document.getElementById("form-title"),
+
+  placeSearchSection: document.getElementById("place-search-section"),
+  placeSearchInput: document.getElementById("place-search-input"),
+  placeSearchBtn: document.getElementById("place-search-btn"),
+  placeSearchStatus: document.getElementById("place-search-status"),
+  placeSearchResults: document.getElementById("place-search-results"),
+
   form: document.getElementById("venue-form"),
   fName: document.getElementById("f-name"),
   fType: document.getElementById("f-type"),
@@ -432,6 +440,81 @@ function renderCategorySuggestions() {
   el.categorySuggestions.innerHTML = values.map(c => `<option value="${c}"></option>`).join("");
 }
 
+// ---- Ortssuche (OpenStreetMap) ----
+
+function renderPlaceResults(results) {
+  el.placeSearchResults.innerHTML = "";
+  results.forEach(r => {
+    const row = document.createElement("div");
+    row.className = "place-result";
+    row.innerHTML = `
+      <div class="place-result__info">
+        <div class="place-result__name">${r.name}</div>
+        <div class="place-result__address">${r.address || "Adresse unbekannt"}</div>
+      </div>
+      <button type="button" class="place-result__add">Hinzufügen</button>
+    `;
+    row.querySelector(".place-result__add").addEventListener("click", () => selectPlaceResult(r));
+    el.placeSearchResults.appendChild(row);
+  });
+}
+
+async function handlePlaceSearch() {
+  const query = el.placeSearchInput.value.trim();
+  if (!query) return;
+  el.placeSearchBtn.disabled = true;
+  el.placeSearchStatus.textContent = "Suche…";
+  el.placeSearchResults.innerHTML = "";
+  try {
+    const results = await searchPlaces(query);
+    if (results.length === 0) {
+      el.placeSearchStatus.textContent = "Nichts gefunden. Du kannst die Felder unten auch manuell ausfüllen.";
+    } else {
+      el.placeSearchStatus.textContent = "";
+      renderPlaceResults(results);
+    }
+  } catch (err) {
+    console.warn(err);
+    el.placeSearchStatus.textContent = "Suche gerade nicht erreichbar.";
+  } finally {
+    el.placeSearchBtn.disabled = false;
+  }
+}
+
+async function selectPlaceResult(r) {
+  el.fName.value = r.name;
+  el.fAddress.value = r.address;
+  el.fNeighborhood.value = r.neighborhood;
+  if (r.category) el.fCategory.value = r.category;
+  formState.type = r.type;
+  formState.location = { lat: r.lat, lng: r.lng };
+  formState.mapLink = r.website || "";
+  el.fMapLink.value = formState.mapLink;
+  renderTypeSegmented();
+  updateLocationStatus();
+
+  el.placeSearchStatus.textContent = "✓ Übernommen - Preis/Vibes/Notizen unten ergänzen und speichern.";
+  el.placeSearchResults.innerHTML = "";
+
+  if (r.commonsFile) {
+    el.placeSearchStatus.textContent = "✓ Übernommen - lade Vorschaubild…";
+    try {
+      const imgUrl = await fetchCommonsImageUrl(r.commonsFile);
+      if (imgUrl) {
+        const base64 = await urlToCompressedBase64(imgUrl);
+        formState.photos.push(base64);
+        renderFormPhotos();
+      }
+    } catch (err) {
+      console.warn(err);
+    } finally {
+      el.placeSearchStatus.textContent = "✓ Übernommen - Preis/Vibes/Notizen unten ergänzen und speichern.";
+    }
+  }
+
+  el.fName.focus();
+}
+
 function openForm(venue) {
   formState.editingId = venue ? venue.id : null;
   formState.photos = venue ? [...(venue.photos || [])] : [];
@@ -457,6 +540,11 @@ function openForm(venue) {
   renderCategorySuggestions();
   renderFormVibes();
   renderFormPhotos();
+
+  el.placeSearchSection.hidden = !!venue;
+  el.placeSearchInput.value = "";
+  el.placeSearchStatus.textContent = "";
+  el.placeSearchResults.innerHTML = "";
 
   el.formSheet.hidden = false;
   el.formSheetInner.scrollTop = 0;
@@ -693,6 +781,13 @@ function initEvents() {
   el.fLocate.addEventListener("click", handleFormLocate);
   el.fMapLink.addEventListener("blur", handleMapLinkBlur);
   el.fAddress.addEventListener("blur", handleAddressBlur);
+  el.placeSearchBtn.addEventListener("click", handlePlaceSearch);
+  el.placeSearchInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handlePlaceSearch();
+    }
+  });
   el.fPhotoAdd.addEventListener("click", () => el.fPhotoInput.click());
   el.fPhotoInput.addEventListener("change", handlePhotoInputChange);
   el.fVibeAdd.addEventListener("click", addCustomVibe);

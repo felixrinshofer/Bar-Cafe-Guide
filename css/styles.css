@@ -708,6 +708,75 @@ main {
   color: var(--danger);
 }
 
+/* Place search */
+
+.place-search {
+  background: rgba(0, 86, 179, 0.06);
+  border: 1px solid rgba(0, 86, 179, 0.15);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 8px;
+}
+
+.place-search .field-label {
+  margin-top: 0;
+}
+
+.place-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.place-search-results:empty {
+  margin-top: 0;
+}
+
+.place-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.place-result__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-result__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-result__address {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-result__add {
+  flex: none;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 /* Form */
 
 .field-label {
@@ -721,7 +790,8 @@ main {
 
 #venue-form input[type="text"],
 #venue-form input[type="search"],
-#venue-form textarea {
+#venue-form textarea,
+#place-search-input {
   width: 100%;
   background: var(--surface-solid);
   border: 1px solid var(--border);

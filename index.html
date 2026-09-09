@@ -107,6 +107,17 @@
       <button class="sheet__close" id="form-close" type="button" aria-label="Schließen">✕</button>
       <div class="sheet__body">
         <h2 id="form-title">Neue Location</h2>
+
+        <div id="place-search-section" class="place-search">
+          <p class="field-label">Bar/Café suchen (optional)</p>
+          <div class="inline-add">
+            <input id="place-search-input" type="text" placeholder="z.B. 089 Bar" />
+            <button id="place-search-btn" type="button" class="btn btn--small">Suchen</button>
+          </div>
+          <p id="place-search-status" class="field-hint"></p>
+          <div id="place-search-results" class="place-search-results"></div>
+        </div>
+
         <form id="venue-form">
           <label class="field-label" for="f-name">Name</label>
           <input id="f-name" type="text" required placeholder="z.B. Goldene Bar" />
