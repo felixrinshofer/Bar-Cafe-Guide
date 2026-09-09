@@ -56,6 +56,10 @@ const el = {
 
   fabAdd: document.getElementById("fab-add"),
 
+  lightbox: document.getElementById("lightbox"),
+  lightboxImg: document.getElementById("lightbox-img"),
+  lightboxClose: document.getElementById("lightbox-close"),
+
   detailSheet: document.getElementById("detail-sheet"),
   detailSheetInner: document.querySelector("#detail-sheet .sheet"),
   detailClose: document.getElementById("detail-close"),
@@ -313,6 +317,7 @@ function openDetail(id) {
     const img = document.createElement("img");
     img.src = src;
     img.alt = v.name;
+    img.addEventListener("click", () => openLightbox(src));
     el.detailPhotos.appendChild(img);
   });
 
@@ -385,6 +390,18 @@ function openDetail(id) {
 function closeDetail() {
   el.detailSheet.hidden = true;
   el.detailPhotos.innerHTML = "";
+}
+
+// ---- Lightbox ----
+
+function openLightbox(src) {
+  el.lightboxImg.src = src;
+  el.lightbox.hidden = false;
+}
+
+function closeLightbox() {
+  el.lightbox.hidden = true;
+  el.lightboxImg.src = "";
 }
 
 // ---- Form sheet (add / edit) ----
@@ -637,6 +654,14 @@ function initEvents() {
   el.detailClose.addEventListener("click", closeDetail);
   el.detailSheet.addEventListener("click", e => {
     if (e.target === el.detailSheet) closeDetail();
+  });
+
+  el.lightboxClose.addEventListener("click", closeLightbox);
+  el.lightbox.addEventListener("click", e => {
+    if (e.target === el.lightbox) closeLightbox();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !el.lightbox.hidden) closeLightbox();
   });
 
   el.formClose.addEventListener("click", closeForm);
