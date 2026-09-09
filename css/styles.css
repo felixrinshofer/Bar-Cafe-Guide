@@ -528,8 +528,8 @@ main {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px;
+  gap: 25px;
+  padding: 8px 31px;
   border-radius: 999px;
   background: var(--glass);
   backdrop-filter: var(--blur);
@@ -635,11 +635,18 @@ main {
 }
 
 .sheet__handle {
+  box-sizing: content-box;
   width: 40px;
   height: 5px;
   border-radius: 999px;
   background: var(--border-strong);
   margin: 10px auto 0;
+  padding: 10px 30px;
+  background-clip: content-box;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sheet__close {
@@ -1336,4 +1343,218 @@ main {
   color: white;
   font-size: 0.65rem;
   line-height: 1;
+}
+
+/* Profile / Fortschritt */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.profile-header__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, #1a6fd6, var(--accent));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex: none;
+}
+
+.profile-header__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.profile-header__settings {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(60, 60, 67, 0.08);
+  font-size: 1.1rem;
+}
+
+.profile-stats-row {
+  display: flex;
+  gap: 26px;
+  margin: 10px 0 24px;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-stat__label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.profile-stat__value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.promille-chart {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.promille-chart__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.promille-chart__main {
+  height: 120px;
+}
+
+.promille-chart__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.promille-chart__axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  padding: 2px 0;
+  flex: none;
+  height: 120px;
+}
+
+.promille-chart__months {
+  position: relative;
+  height: 18px;
+  margin-top: 4px;
+}
+
+.promille-chart__month {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.streak-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 22px;
+}
+
+.streak-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 86, 179, 0.06);
+  border: 1px solid rgba(0, 86, 179, 0.15);
+  text-align: center;
+}
+
+.streak-card__icon {
+  font-size: 1.6rem;
+}
+
+.streak-card__value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.streak-card__label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.profile-calendar {
+  margin-bottom: 8px;
+}
+
+.profile-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.profile-calendar__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.profile-calendar__nav {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(60, 60, 67, 0.08);
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.profile-calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.profile-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.profile-calendar__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.profile-calendar__cell--active {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
+
+.profile-calendar__cell--today:not(.profile-calendar__cell--active) {
+  border: 1.5px solid var(--accent);
+}
+
+.profile-calendar__cell--empty {
+  visibility: hidden;
 }

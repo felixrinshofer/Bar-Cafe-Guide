@@ -58,6 +58,7 @@ const state = {
 let authMode = "login";
 let pendingRegisterName = null;
 let rankingTimeframe = "today";
+let profileCalendarOffset = 0;
 const knownDisplayNames = {};
 let selectedDrinkType = null;
 
@@ -189,7 +190,17 @@ const el = {
   personDrinksClose: document.getElementById("person-drinks-close"),
   personDrinksName: document.getElementById("person-drinks-name"),
   personDrinksSummary: document.getElementById("person-drinks-summary"),
-  personDrinksList: document.getElementById("person-drinks-list")
+  personDrinksList: document.getElementById("person-drinks-list"),
+
+  profileSheet: document.getElementById("profile-sheet"),
+  profileClose: document.getElementById("profile-close"),
+  profileSettingsBtn: document.getElementById("profile-settings-btn"),
+  profileAvatar: document.getElementById("profile-avatar"),
+  profileName: document.getElementById("profile-name"),
+  profileWeekStats: document.getElementById("profile-week-stats"),
+  profileChart: document.getElementById("profile-chart"),
+  profileStreaks: document.getElementById("profile-streaks"),
+  profileCalendar: document.getElementById("profile-calendar")
 };
 
 function toggleInArray(arr, value) {
@@ -1040,6 +1051,89 @@ function calculateBac(drinks) {
   return Math.max(0, peakBac - hoursElapsed * ELIMINATION_PER_HOUR);
 }
 
+function calculatePeakBacForDay(dayDrinks) {
+  const totalGrams = dayDrinks.reduce((sum, d) => sum + (DRINK_ALCOHOL_GRAMS[d.drinkType] || 0), 0);
+  if (totalGrams <= 0) return 0;
+  return totalGrams / (AVG_BODY_WEIGHT_KG * WIDMARK_R);
+}
+
+function startOfDay(ts) {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function mondayOfWeek(ts) {
+  const d = startOfDay(ts);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function calculateDailyStreak(drinks) {
+  const days = new Set(drinks.map(d => dateKey(startOfDay(d.createdAt))));
+  let cursor = startOfDay(Date.now());
+  if (!days.has(dateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  let streak = 0;
+  while (days.has(dateKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function calculateWeeklyStreak(drinks) {
+  const weeks = new Set(drinks.map(d => dateKey(mondayOfWeek(d.createdAt))));
+  let cursor = mondayOfWeek(Date.now());
+  if (!weeks.has(dateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  let streak = 0;
+  while (weeks.has(dateKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  return streak;
+}
+
+function groupByDay(drinks) {
+  const byDay = {};
+  drinks.forEach(d => {
+    const key = dateKey(startOfDay(d.createdAt));
+    byDay[key] = byDay[key] || [];
+    byDay[key].push(d);
+  });
+  return byDay;
+}
+
+function getWeeklyPeakSeries(drinks, weeksCount) {
+  const currentMonday = mondayOfWeek(Date.now());
+  const series = [];
+  for (let i = weeksCount - 1; i >= 0; i--) {
+    const weekStart = new Date(currentMonday);
+    weekStart.setDate(weekStart.getDate() - i * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const weekDrinks = drinks.filter(d => d.createdAt >= weekStart.getTime() && d.createdAt < weekEnd.getTime());
+    const byDay = groupByDay(weekDrinks);
+    let weekPeak = 0;
+    Object.values(byDay).forEach(dayDrinks => {
+      const peak = calculatePeakBacForDay(dayDrinks);
+      if (peak > weekPeak) weekPeak = peak;
+    });
+    series.push({ weekStart, peak: weekPeak });
+  }
+  return series;
+}
+
 function bacColorClass(bac) {
   if (bac > 2.0) return "ranking-row--red";
   if (bac >= 1.0) return "ranking-row--yellow";
@@ -1059,6 +1153,191 @@ function updatePromilleCard() {
   const bac = calculateBac(myDrinksToday);
   el.promilleValue.textContent = bac.toFixed(2).replace(".", ",") + "‰";
   el.promilleCard.hidden = false;
+}
+
+function buildPromilleChartHtml(series) {
+  const width = 300;
+  const height = 120;
+  const peaks = series.map(s => s.peak);
+  const rawMax = Math.max(...peaks, 0);
+  const maxVal = Math.max(1, Math.ceil(rawMax * 2) / 2);
+  const n = series.length;
+  const stepX = n > 1 ? width / (n - 1) : width;
+
+  const points = series.map((s, i) => ({
+    x: i * stepX,
+    y: height - (s.peak / maxVal) * (height - 10),
+    ...s
+  }));
+
+  const linePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const areaPoints = `0,${height} ${linePoints} ${width},${height}`;
+
+  const circles = points
+    .map((p, i) => {
+      const isLast = i === points.length - 1;
+      return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isLast ? 5 : 3.5}" fill="${
+        isLast ? "#0056b3" : "white"
+      }" stroke="#0056b3" stroke-width="2" />`;
+    })
+    .join("");
+
+  const svg = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" class="promille-chart__svg">
+      <polygon points="${areaPoints}" fill="rgba(0,86,179,0.12)" />
+      <polyline points="${linePoints}" fill="none" stroke="#0056b3" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+      ${circles}
+    </svg>`;
+
+  const fmt = v => v.toFixed(1).replace(".", ",") + "‰";
+
+  const monthLabels = [];
+  let lastMonth = null;
+  series.forEach((s, i) => {
+    const m = s.weekStart.getMonth();
+    if (m !== lastMonth) {
+      monthLabels.push({
+        index: i,
+        label: s.weekStart.toLocaleDateString("de-DE", { month: "short" }).replace(".", "").toUpperCase()
+      });
+      lastMonth = m;
+    }
+  });
+  const monthsHtml = monthLabels
+    .map(m => `<span class="promille-chart__month" style="left:${n > 1 ? (m.index / (n - 1)) * 100 : 0}%">${m.label}</span>`)
+    .join("");
+
+  return `<div class="promille-chart">
+    <div class="promille-chart__body">
+      <div class="promille-chart__main">${svg}</div>
+      <div class="promille-chart__months">${monthsHtml}</div>
+    </div>
+    <div class="promille-chart__axis">
+      <span>${fmt(maxVal)}</span>
+      <span>${fmt(maxVal / 2)}</span>
+      <span>0‰</span>
+    </div>
+  </div>`;
+}
+
+function renderProfileWeekStats(myDrinks) {
+  const monday = mondayOfWeek(Date.now());
+  const weekDrinks = myDrinks.filter(d => d.createdAt >= monday.getTime());
+  const days = new Set(weekDrinks.map(d => dateKey(startOfDay(d.createdAt))));
+  const byDay = groupByDay(weekDrinks);
+  let peak = 0;
+  Object.values(byDay).forEach(dayDrinks => {
+    const p = calculatePeakBacForDay(dayDrinks);
+    if (p > peak) peak = p;
+  });
+
+  el.profileWeekStats.innerHTML = `
+    <div class="profile-stat">
+      <span class="profile-stat__label">Getränke</span>
+      <span class="profile-stat__value">${weekDrinks.length}</span>
+    </div>
+    <div class="profile-stat">
+      <span class="profile-stat__label">Trinktage</span>
+      <span class="profile-stat__value">${days.size}</span>
+    </div>
+    <div class="profile-stat">
+      <span class="profile-stat__label">Spitzenwert</span>
+      <span class="profile-stat__value">${peak.toFixed(2).replace(".", ",")}‰</span>
+    </div>
+  `;
+}
+
+function renderProfileStreaks(myDrinks) {
+  const weeklyStreak = calculateWeeklyStreak(myDrinks);
+  const dailyStreak = calculateDailyStreak(myDrinks);
+  el.profileStreaks.innerHTML = `
+    <div class="streak-card">
+      <span class="streak-card__icon">🔥</span>
+      <span class="streak-card__value">${weeklyStreak}</span>
+      <span class="streak-card__label">Wochen in Folge</span>
+    </div>
+    <div class="streak-card">
+      <span class="streak-card__icon">🔥</span>
+      <span class="streak-card__value">${dailyStreak}</span>
+      <span class="streak-card__label">Tage in Folge</span>
+    </div>
+  `;
+}
+
+function renderProfileCalendar(myDrinks) {
+  const now = new Date();
+  const viewDate = new Date(now.getFullYear(), now.getMonth() + profileCalendarOffset, 1);
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const daysWithDrinks = new Set(myDrinks.map(d => dateKey(startOfDay(d.createdAt))));
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startDay = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = dateKey(startOfDay(Date.now()));
+
+  const cells = [];
+  for (let i = 0; i < startDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const monthLabel = viewDate.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+  const dayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+  const cellsHtml = cells
+    .map(d => {
+      if (d === null) return `<span class="profile-calendar__cell profile-calendar__cell--empty"></span>`;
+      const key = dateKey(new Date(year, month, d));
+      const classes = ["profile-calendar__cell"];
+      if (daysWithDrinks.has(key)) classes.push("profile-calendar__cell--active");
+      if (key === todayKey) classes.push("profile-calendar__cell--today");
+      return `<span class="${classes.join(" ")}">${d}</span>`;
+    })
+    .join("");
+
+  el.profileCalendar.innerHTML = `
+    <div class="profile-calendar">
+      <div class="profile-calendar__header">
+        <button type="button" class="profile-calendar__nav" id="calendar-prev">‹</button>
+        <span class="profile-calendar__title">${monthLabel}</span>
+        <button type="button" class="profile-calendar__nav" id="calendar-next">›</button>
+      </div>
+      <div class="profile-calendar__weekdays">${dayLabels.map(l => `<span>${l}</span>`).join("")}</div>
+      <div class="profile-calendar__grid">${cellsHtml}</div>
+    </div>
+  `;
+
+  document.getElementById("calendar-prev").addEventListener("click", () => {
+    profileCalendarOffset -= 1;
+    renderProfileCalendar(myDrinks);
+  });
+  document.getElementById("calendar-next").addEventListener("click", () => {
+    profileCalendarOffset += 1;
+    renderProfileCalendar(myDrinks);
+  });
+}
+
+function renderProfileSheet() {
+  if (!state.user) return;
+  const name = state.user.displayName || state.user.email;
+  el.profileName.textContent = name;
+  el.profileAvatar.textContent = name.charAt(0).toUpperCase();
+
+  const myDrinks = state.drinks.filter(d => d.uid === state.user.uid);
+
+  renderProfileWeekStats(myDrinks);
+  el.profileChart.innerHTML = buildPromilleChartHtml(getWeeklyPeakSeries(myDrinks, 12));
+  renderProfileStreaks(myDrinks);
+  renderProfileCalendar(myDrinks);
+}
+
+function openProfileSheet() {
+  profileCalendarOffset = 0;
+  renderProfileSheet();
+  el.profileSheet.hidden = false;
+}
+
+function closeProfileSheet() {
+  el.profileSheet.hidden = true;
 }
 
 function renderRanking() {
@@ -1249,7 +1528,21 @@ function initEvents() {
     }
   });
 
-  el.accountBtn.addEventListener("click", openAccountSheet);
+  el.accountBtn.addEventListener("click", () => {
+    if (state.user) {
+      openProfileSheet();
+    } else {
+      openAccountSheet();
+    }
+  });
+  el.profileClose.addEventListener("click", closeProfileSheet);
+  el.profileSheet.addEventListener("click", e => {
+    if (e.target === el.profileSheet) closeProfileSheet();
+  });
+  el.profileSettingsBtn.addEventListener("click", () => {
+    closeProfileSheet();
+    openAccountSheet();
+  });
   el.accountClose.addEventListener("click", closeAccountSheet);
   el.accountSheet.addEventListener("click", e => {
     if (e.target === el.accountSheet) closeAccountSheet();
@@ -1313,14 +1606,106 @@ function initHeaderShrink() {
   );
 }
 
+function initScrollLock() {
+  const overlays = [...document.querySelectorAll(".sheet-backdrop"), el.lightbox].filter(Boolean);
+  let savedScrollY = 0;
+
+  function anyOpen() {
+    return overlays.some(o => !o.hidden);
+  }
+
+  function applyLock() {
+    const shouldLock = anyOpen();
+    const isLocked = document.body.style.position === "fixed";
+    if (shouldLock && !isLocked) {
+      savedScrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${savedScrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.width = "100%";
+    } else if (!shouldLock && isLocked) {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      window.scrollTo(0, savedScrollY);
+    }
+  }
+
+  const observer = new MutationObserver(applyLock);
+  overlays.forEach(o => observer.observe(o, { attributes: true, attributeFilter: ["hidden"] }));
+}
+
+function initSheetDragToDismiss() {
+  document.querySelectorAll(".sheet-backdrop").forEach(backdrop => {
+    const sheet = backdrop.querySelector(".sheet");
+    const handle = backdrop.querySelector(".sheet__handle");
+    const closeBtn = backdrop.querySelector(".sheet__close");
+    if (!sheet || !handle || !closeBtn) return;
+
+    let startY = 0;
+    let dragY = 0;
+    let dragging = false;
+
+    function pointY(e) {
+      return e.touches ? e.touches[0].clientY : e.clientY;
+    }
+
+    function onStart(e) {
+      dragging = true;
+      startY = pointY(e);
+      dragY = 0;
+      sheet.style.transition = "none";
+    }
+
+    function onMove(e) {
+      if (!dragging) return;
+      const delta = Math.max(0, pointY(e) - startY);
+      dragY = delta;
+      sheet.style.transform = `translateY(${delta}px)`;
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = "transform 0.35s var(--ease-liquid)";
+      const threshold = sheet.offsetHeight * 0.22;
+      if (dragY > threshold) {
+        sheet.style.transform = "translateY(100%)";
+        setTimeout(() => {
+          closeBtn.click();
+          sheet.style.transition = "";
+          sheet.style.transform = "";
+        }, 320);
+      } else {
+        sheet.style.transform = "translateY(0)";
+      }
+      dragY = 0;
+    }
+
+    handle.addEventListener("touchstart", onStart, { passive: true });
+    handle.addEventListener("touchmove", onMove, { passive: false });
+    handle.addEventListener("touchend", onEnd);
+    handle.addEventListener("mousedown", onStart);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+  });
+}
+
 function init() {
   initEvents();
   initHeaderShrink();
+  initScrollLock();
+  initSheetDragToDismiss();
   onAuthChange(renderAccountUI);
 
   subscribeDrinks(drinks => {
     state.drinks = drinks;
     if (!el.rankingSheet.hidden) renderRanking();
+    if (!el.profileSheet.hidden) renderProfileSheet();
   });
 
   subscribeVenues(
