@@ -40,6 +40,7 @@ export async function searchPlaces(query) {
     type: guessType(item),
     category: item.type ? item.type.replace(/_/g, " ") : "",
     website: item.extratags?.website || null,
+    openingHours: item.extratags?.opening_hours || null,
     commonsFile: item.extratags?.wikimedia_commons || null
   }));
 }

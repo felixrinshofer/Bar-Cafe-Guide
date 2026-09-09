@@ -98,6 +98,7 @@ const el = {
   fMapLink: document.getElementById("f-maplink"),
   fMapLinkStatus: document.getElementById("f-maplink-status"),
   fAddress: document.getElementById("f-address"),
+  fOpeningHours: document.getElementById("f-opening-hours"),
   fLocate: document.getElementById("f-locate"),
   fLocationStatus: document.getElementById("f-location-status"),
   fDescription: document.getElementById("f-description"),
@@ -360,6 +361,14 @@ function openDetail(id) {
     </div>`;
   }
 
+  if (v.openingHours) {
+    tilesHtml += `
+    <div class="info-tile info-tile--wide">
+      <span class="info-tile__label">Öffnungszeiten</span>
+      <span class="info-tile__value">${v.openingHours}</span>
+    </div>`;
+  }
+
   el.detailInfoTiles.innerHTML = tilesHtml;
   el.detailVibes.innerHTML = (v.vibes || []).map(vb => `<span class="vibe-tag">${vb}</span>`).join("");
   el.detailDescription.textContent = v.description || "Noch keine Notizen.";
@@ -484,6 +493,7 @@ async function handlePlaceSearch() {
 async function selectPlaceResult(r) {
   el.fName.value = r.name;
   el.fAddress.value = r.address;
+  el.fOpeningHours.value = r.openingHours || "";
   el.fNeighborhood.value = r.neighborhood;
   if (r.category) el.fCategory.value = r.category;
   formState.type = r.type;
@@ -532,6 +542,7 @@ function openForm(venue) {
   el.fNeighborhood.value = venue ? venue.neighborhood || "" : "";
   el.fMapLink.value = formState.mapLink;
   el.fAddress.value = venue ? venue.address || "" : "";
+  el.fOpeningHours.value = venue ? venue.openingHours || "" : "";
   el.fDescription.value = venue ? venue.description || "" : "";
   updateLocationStatus();
 
@@ -706,6 +717,7 @@ async function handleFormSubmit(e) {
     vibes: [...formState.vibes],
     neighborhood: el.fNeighborhood.value.trim(),
     address: el.fAddress.value.trim(),
+    openingHours: el.fOpeningHours.value.trim(),
     mapLink: el.fMapLink.value.trim(),
     lat: formState.location ? formState.location.lat : null,
     lng: formState.location ? formState.location.lng : null,
