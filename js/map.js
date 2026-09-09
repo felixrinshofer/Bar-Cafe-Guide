@@ -5,11 +5,11 @@ let markers = [];
 let userMarker = null;
 
 const TYPE_COLORS = {
-  bar: "#ff6a3d",
-  cafe: "#6a5acd",
-  dancebar: "#e0459b",
-  club: "#0891b2",
-  restaurant: "#d84315"
+  bar: "#dc2626",
+  cafe: "#0056b3",
+  dancebar: "#16a34a",
+  club: "#f76707",
+  restaurant: "#7c3aed"
 };
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
