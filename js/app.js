@@ -187,6 +187,9 @@ const el = {
   fPhotos: document.getElementById("f-photos"),
   fPhotoInput: document.getElementById("f-photo-input"),
   fPhotoAdd: document.getElementById("f-photo-add"),
+  fPhotoUrl: document.getElementById("f-photo-url"),
+  fPhotoUrlAdd: document.getElementById("f-photo-url-add"),
+  fPhotoUrlStatus: document.getElementById("f-photo-url-status"),
   fSubmit: document.querySelector("#venue-form button[type=submit]"),
   fError: document.getElementById("f-error"),
 
@@ -790,6 +793,7 @@ function renderPriceSegmented() {
 function closeForm() {
   el.formSheet.hidden = true;
   el.fPhotos.innerHTML = "";
+  el.fPhotoUrlStatus.hidden = true;
   el.form.reset();
 }
 
@@ -895,6 +899,26 @@ async function handlePhotoInputChange(e) {
     }
   }
   renderFormPhotos();
+}
+
+async function handlePhotoUrlAdd() {
+  const url = el.fPhotoUrl.value.trim();
+  if (!url) return;
+  el.fPhotoUrlStatus.hidden = false;
+  el.fPhotoUrlStatus.textContent = "Lade Bild…";
+  el.fPhotoUrlAdd.disabled = true;
+  try {
+    const base64 = await urlToCompressedBase64(url);
+    formState.photos.push(base64);
+    renderFormPhotos();
+    el.fPhotoUrl.value = "";
+    el.fPhotoUrlStatus.hidden = true;
+  } catch (err) {
+    el.fPhotoUrlStatus.textContent =
+      "Bild konnte nicht geladen werden – manche Websites blockieren das Einbinden. Versuch eine andere Quelle (z.B. Wikipedia) oder lade das Foto herunter und füge es manuell hinzu.";
+  } finally {
+    el.fPhotoUrlAdd.disabled = false;
+  }
 }
 
 async function handleFormSubmit(e) {
@@ -1732,6 +1756,13 @@ function initEvents() {
   });
   el.fPhotoAdd.addEventListener("click", () => el.fPhotoInput.click());
   el.fPhotoInput.addEventListener("change", handlePhotoInputChange);
+  el.fPhotoUrlAdd.addEventListener("click", handlePhotoUrlAdd);
+  el.fPhotoUrl.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handlePhotoUrlAdd();
+    }
+  });
   el.fVibeAdd.addEventListener("click", addCustomVibe);
   el.fVibeInput.addEventListener("keydown", e => {
     if (e.key === "Enter") {
