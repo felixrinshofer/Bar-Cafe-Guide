@@ -424,6 +424,18 @@ main {
   text-overflow: ellipsis;
 }
 
+.venue-card__rating {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.venue-card__rating-count {
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
 .venue-card__vibes {
   display: flex;
   flex-wrap: wrap;
@@ -452,6 +464,40 @@ main {
 
 .fav-btn--active {
   color: var(--accent);
+}
+
+.detail-rating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+
+.detail-rating__summary {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.rating-input {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-input__star {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 2px;
+  color: var(--border-strong);
+}
+
+.rating-input__star--active {
+  color: #f59e0b;
 }
 
 .empty-state {
@@ -617,8 +663,8 @@ main {
 
 .sheet__handle {
   box-sizing: content-box;
-  width: 40px;
-  height: 5px;
+  width: 24px;
+  height: 3px;
   border-radius: 999px;
   background: var(--border-strong);
   margin: 10px auto 0;
@@ -700,8 +746,24 @@ main {
   margin-top: 0;
 }
 
+#detail-sheet .sheet__handle {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
 .detail-title-row h2 {
   margin: 0;
+}
+
+#detail-fav {
+  font-size: 1.5rem;
+  padding: 2px;
 }
 
 .info-tiles {

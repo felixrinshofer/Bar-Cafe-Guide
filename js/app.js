@@ -15,7 +15,9 @@ import {
   subscribeDrinks,
   addDrink,
   subscribeUserProfiles,
-  updateUserProfile
+  updateUserProfile,
+  subscribeRatings,
+  rateVenue
 } from "./firebase.js";
 import { fileToCompressedBase64, urlToCompressedBase64 } from "./image.js";
 import { parseMapLink, geocodeAddress } from "./geocode.js";
@@ -87,7 +89,9 @@ const state = {
   loaded: false,
   user: null,
   drinks: [],
-  userProfiles: {}
+  userProfiles: {},
+  ratings: [],
+  ratingStats: {}
 };
 
 let authMode = "login";
@@ -96,6 +100,7 @@ let registerGenderValue = "other";
 let editGenderValue = "other";
 let rankingTimeframe = "today";
 let profileCalendarOffset = 0;
+let currentDetailVenueId = null;
 const knownDisplayNames = {};
 let selectedDrinkType = null;
 
@@ -138,13 +143,14 @@ const el = {
 
   detailSheet: document.getElementById("detail-sheet"),
   detailSheetInner: document.querySelector("#detail-sheet .sheet"),
-  detailClose: document.getElementById("detail-close"),
   detailPhotos: document.getElementById("detail-photos"),
   detailName: document.getElementById("detail-name"),
   detailInfoTiles: document.getElementById("detail-info-tiles"),
   detailVibes: document.getElementById("detail-vibes"),
   detailDescription: document.getElementById("detail-description"),
   detailFav: document.getElementById("detail-fav"),
+  detailRatingSummary: document.getElementById("detail-rating-summary"),
+  detailRatingInput: document.getElementById("detail-rating-input"),
   detailEdit: document.getElementById("detail-edit"),
   detailDelete: document.getElementById("detail-delete"),
 
@@ -299,6 +305,21 @@ function renderFilterChips() {
   el.filterToggle.textContent = activeCount > 0 ? `Filter (${activeCount}) ▾` : "Filter ▾";
 }
 
+function computeRatingStats(ratings) {
+  const byVenue = {};
+  ratings.forEach(r => {
+    if (!r.venueId || !r.stars) return;
+    byVenue[r.venueId] = byVenue[r.venueId] || [];
+    byVenue[r.venueId].push(r.stars);
+  });
+  const stats = {};
+  Object.entries(byVenue).forEach(([venueId, starsArr]) => {
+    const avg = starsArr.reduce((a, b) => a + b, 0) / starsArr.length;
+    stats[venueId] = { avg, count: starsArr.length };
+  });
+  return stats;
+}
+
 function computeDistances() {
   if (!state.userLocation) return {};
   const { lat, lng } = state.userLocation;
@@ -318,6 +339,7 @@ function renderVenueCard(v) {
 
   const isFav = state.favorites.has(v.id);
   const dist = state.distances[v.id];
+  const ratingStats = state.ratingStats[v.id];
 
   const thumbHtml =
     v.photos && v.photos.length
@@ -332,8 +354,9 @@ function renderVenueCard(v) {
           <h3 class="venue-card__name">${v.name}</h3>
           <p class="venue-card__meta">${TYPE_LABELS[v.type]} · ${v.category || "—"} · ${PRICE_LABELS[v.priceRange]}</p>
         </div>
-        <button class="fav-btn ${isFav ? "fav-btn--active" : ""}" aria-label="Favorit" data-id="${v.id}">★</button>
+        <button class="fav-btn ${isFav ? "fav-btn--active" : ""}" aria-label="Favorit" data-id="${v.id}">♥</button>
       </div>
+      ${ratingStats ? `<p class="venue-card__rating">⭐ ${ratingStats.avg.toFixed(1).replace(".", ",")} <span class="venue-card__rating-count">(${ratingStats.count})</span></p>` : ""}
       <p class="venue-card__neighborhood">${v.neighborhood || ""}${dist !== undefined ? ` · ${formatDistance(dist)}` : ""}</p>
       ${v.openingHours ? `<p class="venue-card__hours">🕒 ${v.openingHours}</p>` : ""}
       <div class="venue-card__vibes">
@@ -398,7 +421,7 @@ function renderTypeOverview() {
 }
 
 function render() {
-  const filtered = applyFilters(state.venues, state.filters, state.distances, state.favorites);
+  const filtered = applyFilters(state.venues, state.filters, state.distances, state.favorites, state.ratingStats);
   el.resultCount.textContent = state.venues.length ? `${filtered.length} von ${state.venues.length}` : "";
   el.emptyGlobal.hidden = !state.loaded || state.venues.length !== 0;
   renderTypeOverview();
@@ -471,9 +494,47 @@ function setView(view) {
 
 // ---- Detail sheet ----
 
+function renderRatingStars(container, selected, onSelect) {
+  container.innerHTML = "";
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `rating-input__star${i <= selected ? " rating-input__star--active" : ""}`;
+    btn.textContent = "★";
+    btn.setAttribute("aria-label", `${i} Sterne`);
+    btn.addEventListener("click", () => onSelect(i));
+    container.appendChild(btn);
+  }
+}
+
+function renderDetailRating(venue) {
+  const stats = state.ratingStats[venue.id];
+  el.detailRatingSummary.textContent = stats
+    ? `⭐ ${stats.avg.toFixed(1).replace(".", ",")} · ${stats.count} ${stats.count === 1 ? "Bewertung" : "Bewertungen"}`
+    : "Noch keine Bewertungen";
+
+  const myRating = state.user ? state.ratings.find(r => r.venueId === venue.id && r.uid === state.user.uid) : null;
+
+  renderRatingStars(el.detailRatingInput, myRating ? myRating.stars : 0, async stars => {
+    if (!state.user) {
+      openAccountSheet();
+      return;
+    }
+    renderRatingStars(el.detailRatingInput, stars, () => {});
+    try {
+      await rateVenue(state.user.uid, venue.id, stars);
+    } catch (err) {
+      alert("Bewertung konnte nicht gespeichert werden: " + err.message);
+    }
+  });
+}
+
 function openDetail(id) {
   const v = state.venues.find(x => x.id === id);
   if (!v) return;
+
+  currentDetailVenueId = id;
+  renderDetailRating(v);
 
   el.detailPhotos.innerHTML = "";
   (v.photos || []).forEach(src => {
@@ -561,6 +622,7 @@ function openDetail(id) {
 function closeDetail() {
   el.detailSheet.hidden = true;
   el.detailPhotos.innerHTML = "";
+  currentDetailVenueId = null;
 }
 
 // ---- Lightbox ----
@@ -1622,7 +1684,6 @@ function initEvents() {
     }
     openForm(null);
   });
-  el.detailClose.addEventListener("click", closeDetail);
   el.detailSheet.addEventListener("click", e => {
     if (e.target === el.detailSheet) closeDetail();
   });
@@ -1844,11 +1905,21 @@ function initScrollLock() {
 }
 
 function initSheetDragToDismiss() {
+  const closeFunctions = {
+    "detail-sheet": closeDetail,
+    "form-sheet": closeForm,
+    "account-sheet": closeAccountSheet,
+    "drink-sheet": closeDrinkSheet,
+    "ranking-sheet": closeRankingSheet,
+    "person-drinks-sheet": closePersonDrinksSheet,
+    "profile-sheet": closeProfileSheet
+  };
+
   document.querySelectorAll(".sheet-backdrop").forEach(backdrop => {
     const sheet = backdrop.querySelector(".sheet");
     const handle = backdrop.querySelector(".sheet__handle");
-    const closeBtn = backdrop.querySelector(".sheet__close");
-    if (!sheet || !handle || !closeBtn) return;
+    const closeFn = closeFunctions[backdrop.id] || (() => (backdrop.hidden = true));
+    if (!sheet || !handle) return;
 
     let startY = 0;
     let dragY = 0;
@@ -1881,7 +1952,7 @@ function initSheetDragToDismiss() {
       if (dragY > threshold) {
         sheet.style.transform = "translateY(100%)";
         setTimeout(() => {
-          closeBtn.click();
+          closeFn();
           sheet.style.transition = "";
           sheet.style.transform = "";
         }, 320);
@@ -1919,6 +1990,16 @@ function init() {
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
     if (!el.accountSheet.hidden && state.user) populateProfileEditFields();
+  });
+
+  subscribeRatings(ratings => {
+    state.ratings = ratings;
+    state.ratingStats = computeRatingStats(ratings);
+    render();
+    if (!el.detailSheet.hidden && currentDetailVenueId) {
+      const v = state.venues.find(x => x.id === currentDetailVenueId);
+      if (v) renderDetailRating(v);
+    }
   });
 
   subscribeVenues(

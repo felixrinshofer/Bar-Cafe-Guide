@@ -12,10 +12,10 @@ export const emptyFilters = {
   vibes: [],
   search: "",
   favoritesOnly: false,
-  sortBy: "name" // 'name' | 'distance' | 'price' | 'neighborhood'
+  sortBy: "name" // 'name' | 'distance' | 'price' | 'neighborhood' | 'rating'
 };
 
-export function applyFilters(venues, filters, distances, favorites) {
+export function applyFilters(venues, filters, distances, favorites, ratingStats) {
   let result = venues.filter(v => {
     if (filters.favoritesOnly && !(favorites && favorites.has(v.id))) return false;
     if (filters.types.length && !filters.types.includes(v.type)) return false;
@@ -34,6 +34,15 @@ export function applyFilters(venues, filters, distances, favorites) {
     result = [...result].sort((a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity));
   } else if (filters.sortBy === "price") {
     result = [...result].sort((a, b) => a.priceRange - b.priceRange);
+  } else if (filters.sortBy === "rating") {
+    result = [...result].sort((a, b) => {
+      const ra = (ratingStats && ratingStats[a.id]) || null;
+      const rb = (ratingStats && ratingStats[b.id]) || null;
+      if (!ra && rb) return 1;
+      if (ra && !rb) return -1;
+      if (!ra && !rb) return a.name.localeCompare(b.name, "de");
+      return rb.avg - ra.avg || rb.count - ra.count || a.name.localeCompare(b.name, "de");
+    });
   } else if (filters.sortBy === "neighborhood") {
     result = [...result].sort((a, b) => {
       const na = a.neighborhood || "";

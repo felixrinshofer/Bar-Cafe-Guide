@@ -32,6 +32,7 @@ const auth = getAuth(app);
 const venuesCol = collection(db, "venues");
 const usersCol = collection(db, "users");
 const drinksCol = collection(db, "drinks");
+const ratingsCol = collection(db, "ratings");
 
 enableIndexedDbPersistence(db).catch(() => {
   /* mehrere Tabs offen oder Browser unterstützt es nicht - Offline-Cache bleibt dann leer, App funktioniert trotzdem */
@@ -117,4 +118,20 @@ export function subscribeUserProfiles(onChange, onError) {
 
 export async function updateUserProfile(uid, data) {
   await setDoc(doc(usersCol, uid), data, { merge: true });
+}
+
+export function subscribeRatings(onChange, onError) {
+  return onSnapshot(
+    ratingsCol,
+    snapshot => onChange(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => {
+      console.error("Firestore-Verbindung (ratings) fehlgeschlagen", err);
+      if (onError) onError(err);
+    }
+  );
+}
+
+export async function rateVenue(uid, venueId, stars) {
+  const id = `${venueId}_${uid}`;
+  await setDoc(doc(ratingsCol, id), { uid, venueId, stars, updatedAt: Date.now() });
 }

@@ -31,6 +31,7 @@
         <option value="distance">Entfernung</option>
         <option value="price">Preis</option>
         <option value="neighborhood">Stadtteil</option>
+        <option value="rating">Bewertung</option>
       </select>
       <button id="filter-toggle" type="button" aria-expanded="false">Filter ▾</button>
     </div>
@@ -80,7 +81,7 @@
       <img class="dock-icon" src="./icons/plus.svg" alt="" />
     </button>
     <button id="fab-add" class="dock-btn" type="button" aria-label="Bar oder Café hinzufügen">
-      <img class="dock-icon" src="./icons/bar-glass.svg" alt="" />
+      <img class="dock-icon" src="./icons/building.svg" alt="" />
     </button>
     <button id="account-btn" class="dock-btn" type="button" aria-label="Profil">
       <img class="dock-icon" src="./icons/account.svg" alt="" />
@@ -95,12 +96,15 @@
   <div id="detail-sheet" class="sheet-backdrop" hidden>
     <div class="sheet" role="dialog" aria-modal="true">
       <div class="sheet__handle"></div>
-      <button class="sheet__close" id="detail-close" type="button" aria-label="Schließen">✕</button>
       <div id="detail-photos" class="detail-photos"></div>
       <div class="sheet__body">
         <div class="detail-title-row">
           <h2 id="detail-name"></h2>
-          <button class="fav-btn" id="detail-fav" type="button" aria-label="Favorit">★</button>
+          <button class="fav-btn" id="detail-fav" type="button" aria-label="Favorit">♥</button>
+        </div>
+        <div class="detail-rating">
+          <p id="detail-rating-summary" class="detail-rating__summary">Noch keine Bewertungen</p>
+          <div id="detail-rating-input" class="rating-input"></div>
         </div>
         <div id="detail-info-tiles" class="info-tiles"></div>
         <div id="detail-vibes" class="venue-card__vibes"></div>
