@@ -156,7 +156,6 @@ const el = {
 
   formSheet: document.getElementById("form-sheet"),
   formSheetInner: document.querySelector("#form-sheet .sheet"),
-  formClose: document.getElementById("form-close"),
   formCancel: document.getElementById("form-cancel"),
   formTitle: document.getElementById("form-title"),
 
@@ -191,7 +190,6 @@ const el = {
 
   accountBtn: document.getElementById("account-btn"),
   accountSheet: document.getElementById("account-sheet"),
-  accountClose: document.getElementById("account-close"),
   accountLoggedOut: document.getElementById("account-logged-out"),
   accountLoggedIn: document.getElementById("account-logged-in"),
   authTabs: document.getElementById("auth-tabs"),
@@ -219,7 +217,6 @@ const el = {
   addDrinkBtn: document.getElementById("add-drink-btn"),
 
   drinkSheet: document.getElementById("drink-sheet"),
-  drinkClose: document.getElementById("drink-close"),
   drinkStepType: document.getElementById("drink-step-type"),
   drinkTypeGrid: document.getElementById("drink-type-grid"),
   drinkStepVenue: document.getElementById("drink-step-venue"),
@@ -229,7 +226,6 @@ const el = {
   drinkStatus: document.getElementById("drink-status"),
 
   rankingSheet: document.getElementById("ranking-sheet"),
-  rankingClose: document.getElementById("ranking-close"),
   rankingFilter: document.getElementById("ranking-filter"),
   rankingChampions: document.getElementById("ranking-champions"),
   rankingList: document.getElementById("ranking-list"),
@@ -238,13 +234,11 @@ const el = {
   promilleValue: document.getElementById("promille-value"),
 
   personDrinksSheet: document.getElementById("person-drinks-sheet"),
-  personDrinksClose: document.getElementById("person-drinks-close"),
   personDrinksName: document.getElementById("person-drinks-name"),
   personDrinksSummary: document.getElementById("person-drinks-summary"),
   personDrinksList: document.getElementById("person-drinks-list"),
 
   profileSheet: document.getElementById("profile-sheet"),
-  profileClose: document.getElementById("profile-close"),
   profileSettingsBtn: document.getElementById("profile-settings-btn"),
   profileAvatar: document.getElementById("profile-avatar"),
   profileName: document.getElementById("profile-name"),
@@ -1696,7 +1690,6 @@ function initEvents() {
     if (e.key === "Escape" && !el.lightbox.hidden) closeLightbox();
   });
 
-  el.formClose.addEventListener("click", closeForm);
   el.formCancel.addEventListener("click", closeForm);
   el.formSheet.addEventListener("click", e => {
     if (e.target === el.formSheet) closeForm();
@@ -1729,7 +1722,6 @@ function initEvents() {
       openAccountSheet();
     }
   });
-  el.profileClose.addEventListener("click", closeProfileSheet);
   el.profileSheet.addEventListener("click", e => {
     if (e.target === el.profileSheet) closeProfileSheet();
   });
@@ -1737,7 +1729,6 @@ function initEvents() {
     closeProfileSheet();
     openAccountSheet();
   });
-  el.accountClose.addEventListener("click", closeAccountSheet);
   el.accountSheet.addEventListener("click", e => {
     if (e.target === el.accountSheet) closeAccountSheet();
   });
@@ -1749,7 +1740,6 @@ function initEvents() {
   el.profileSaveBtn.addEventListener("click", handleProfileSave);
 
   el.addDrinkBtn.addEventListener("click", openDrinkSheet);
-  el.drinkClose.addEventListener("click", closeDrinkSheet);
   el.drinkSheet.addEventListener("click", e => {
     if (e.target === el.drinkSheet) closeDrinkSheet();
   });
@@ -1760,7 +1750,6 @@ function initEvents() {
   el.drinkVenueSearch.addEventListener("input", e => renderDrinkVenueList(e.target.value));
 
   el.socialBtn.addEventListener("click", openRankingSheet);
-  el.rankingClose.addEventListener("click", closeRankingSheet);
   el.rankingSheet.addEventListener("click", e => {
     if (e.target === el.rankingSheet) closeRankingSheet();
   });
@@ -1768,7 +1757,6 @@ function initEvents() {
     b.addEventListener("click", () => setRankingTimeframe(b.dataset.filter));
   });
 
-  el.personDrinksClose.addEventListener("click", closePersonDrinksSheet);
   el.personDrinksSheet.addEventListener("click", e => {
     if (e.target === el.personDrinksSheet) closePersonDrinksSheet();
   });

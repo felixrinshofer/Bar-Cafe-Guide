@@ -662,32 +662,30 @@ main {
 }
 
 .sheet__handle {
-  box-sizing: content-box;
-  width: 24px;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--border-strong);
-  margin: 10px auto 0;
-  padding: 10px 30px;
-  background-clip: content-box;
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 26px;
   touch-action: none;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+  z-index: 3;
 }
 
-.sheet__close {
+.sheet__handle::after {
+  content: "";
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(60, 60, 67, 0.08);
-  color: var(--text-dim);
-  font-size: 0.95rem;
-  z-index: 2;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .sheet__body {
@@ -746,16 +744,6 @@ main {
   margin-top: 0;
 }
 
-#detail-sheet .sheet__handle {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  z-index: 3;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-}
 
 .detail-title-row h2 {
   margin: 0;
@@ -1399,7 +1387,7 @@ main {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: 20px;
 }
 
 .profile-header__avatar {
