@@ -79,9 +79,64 @@ header {
 }
 
 .app-logo-wrap {
+  position: relative;
   margin: 0 0 12px;
   display: flex;
+  justify-content: flex-start;
+}
+
+.promille-badge {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-float);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  transition: width 0.7s var(--ease-liquid), height 0.7s var(--ease-liquid), font-size 0.7s var(--ease-liquid),
+    background 0.4s var(--ease-liquid), border-color 0.4s var(--ease-liquid), color 0.4s var(--ease-liquid);
+}
+
+#app-header.header--scrolled .promille-badge {
+  width: 32px;
+  height: 32px;
+  font-size: 0.7rem;
+}
+
+.promille-badge__unit {
+  font-size: 0.55em;
+  font-weight: 700;
+  vertical-align: sub;
+  margin-left: 1px;
+}
+
+.promille-badge--green {
+  background: rgba(52, 199, 89, 0.24);
+  border-color: rgba(52, 199, 89, 0.4);
+  color: #1b8a3a;
+}
+
+.promille-badge--yellow {
+  background: rgba(255, 204, 0, 0.3);
+  border-color: rgba(255, 204, 0, 0.45);
+  color: #8a6d00;
+}
+
+.promille-badge--red {
+  background: rgba(255, 59, 48, 0.24);
+  border-color: rgba(255, 59, 48, 0.4);
+  color: #c62828;
 }
 
 .account-btn--active {

@@ -118,6 +118,8 @@ const formState = {
 
 const el = {
   appHeader: document.getElementById("app-header"),
+  headerPromilleBadge: document.getElementById("header-promille-badge"),
+  headerPromilleValue: document.getElementById("header-promille-value"),
   list: document.getElementById("venue-list"),
   typeOverview: document.getElementById("type-overview"),
   mapContainer: document.getElementById("map"),
@@ -1105,6 +1107,7 @@ function renderAccountUI(user) {
     el.accountBtn.innerHTML = '<img class="dock-icon" src="./icons/account.svg" alt="" />';
     el.accountBtn.classList.remove("account-btn--active");
   }
+  renderHeaderPromilleBadge();
 }
 
 function openDrinkSheet() {
@@ -1318,10 +1321,32 @@ function getWeeklyPeakSeries(drinks, weeksCount, profile) {
   return series;
 }
 
+function bacLevel(bac) {
+  if (bac > 2.0) return "red";
+  if (bac >= 1.0) return "yellow";
+  return "green";
+}
+
 function bacColorClass(bac) {
-  if (bac > 2.0) return "ranking-row--red";
-  if (bac >= 1.0) return "ranking-row--yellow";
-  return "ranking-row--green";
+  return `ranking-row--${bacLevel(bac)}`;
+}
+
+function computeMyLiveBac() {
+  if (!state.user) return null;
+  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "today"));
+  if (!myDrinksToday.length) return null;
+  return calculateBac(myDrinksToday, state.userProfiles[state.user.uid]);
+}
+
+function renderHeaderPromilleBadge() {
+  if (!state.user) {
+    el.headerPromilleBadge.hidden = true;
+    return;
+  }
+  const bac = computeMyLiveBac() ?? 0;
+  el.headerPromilleValue.textContent = bac.toFixed(1).replace(".", ",");
+  el.headerPromilleBadge.className = `promille-badge promille-badge--${bacLevel(bac)}`;
+  el.headerPromilleBadge.hidden = false;
 }
 
 function updatePromilleCard() {
@@ -1971,6 +1996,7 @@ function init() {
     state.drinks = drinks;
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
+    renderHeaderPromilleBadge();
   });
 
   subscribeUserProfiles(profiles => {
@@ -1978,7 +2004,10 @@ function init() {
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
     if (!el.accountSheet.hidden && state.user) populateProfileEditFields();
+    renderHeaderPromilleBadge();
   });
+
+  setInterval(renderHeaderPromilleBadge, 60000);
 
   subscribeRatings(ratings => {
     state.ratings = ratings;
