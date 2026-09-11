@@ -2024,26 +2024,20 @@ function addCustomVibe() {
   }
 }
 
-const HEADER_SHRINK_RANGE = 60;
-let scrollTicking = false;
+const HEADER_SHRINK_RANGE = 130;
+const HEADER_SHRINK_SMOOTHING = 0.16;
+let headerShrinkCurrent = 0;
 
-function updateHeaderShrink() {
-  const shrink = Math.min(1, Math.max(0, window.scrollY / HEADER_SHRINK_RANGE));
-  el.appHeader.style.setProperty("--shrink", shrink);
-  scrollTicking = false;
+function headerShrinkTick() {
+  const target = Math.min(1, Math.max(0, window.scrollY / HEADER_SHRINK_RANGE));
+  const diff = target - headerShrinkCurrent;
+  headerShrinkCurrent = Math.abs(diff) < 0.0008 ? target : headerShrinkCurrent + diff * HEADER_SHRINK_SMOOTHING;
+  el.appHeader.style.setProperty("--shrink", headerShrinkCurrent);
+  requestAnimationFrame(headerShrinkTick);
 }
 
 function initHeaderShrink() {
-  updateHeaderShrink();
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (scrollTicking) return;
-      scrollTicking = true;
-      requestAnimationFrame(updateHeaderShrink);
-    },
-    { passive: true }
-  );
+  requestAnimationFrame(headerShrinkTick);
 }
 
 function easeOutBack(t) {
