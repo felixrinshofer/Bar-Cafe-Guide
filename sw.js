@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v77";
+const CACHE_NAME = "muc-bars-v79";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./icons/logo.svg",
   "./icons/account.svg",
   "./icons/plus.svg",
-  "./icons/building.svg",
+  "./icons/pin.svg",
   "./icons/trophy.svg",
   "./icons/map.svg",
   "./vendor/maplibre/maplibre-gl.mjs",
