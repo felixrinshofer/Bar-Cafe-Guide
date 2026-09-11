@@ -60,22 +60,12 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(238, 241, 245, 0.55);
+  background: rgba(238, 241, 245, calc(0.55 + 0.13 * var(--shrink, 0)));
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
-  border-radius: 0;
-  box-shadow: 0 0 0 rgba(28, 28, 30, 0);
-  transition:
-    border-radius 0.7s var(--ease-liquid),
-    box-shadow 0.7s var(--ease-liquid),
-    background 0.7s var(--ease-liquid);
-}
-
-#app-header.header--scrolled {
-  border-radius: 0 0 36px 36px;
-  box-shadow: 0 18px 40px rgba(28, 28, 30, 0.14);
-  background: rgba(238, 241, 245, 0.68);
+  border-radius: 0 0 calc(var(--shrink, 0) * 36px) calc(var(--shrink, 0) * 36px);
+  box-shadow: 0 calc(var(--shrink, 0) * 18px) calc(var(--shrink, 0) * 40px) rgba(28, 28, 30, calc(var(--shrink, 0) * 0.14));
 }
 
 .app-logo-wrap {
@@ -90,8 +80,8 @@ header {
   top: 50%;
   right: 0;
   transform: translateY(-50%);
-  width: 64px;
-  height: 64px;
+  width: calc(64px - var(--shrink, 0) * 32px);
+  height: calc(64px - var(--shrink, 0) * 32px);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -101,17 +91,10 @@ header {
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-float);
-  font-size: 1.4rem;
+  font-size: calc(1.4rem - var(--shrink, 0) * 0.7rem);
   font-weight: 800;
   color: var(--text);
-  transition: width 0.7s var(--ease-liquid), height 0.7s var(--ease-liquid), font-size 0.7s var(--ease-liquid),
-    background 0.4s var(--ease-liquid), border-color 0.4s var(--ease-liquid), color 0.4s var(--ease-liquid);
-}
-
-#app-header.header--scrolled .promille-badge {
-  width: 32px;
-  height: 32px;
-  font-size: 0.7rem;
+  transition: background 0.4s var(--ease-liquid), border-color 0.4s var(--ease-liquid), color 0.4s var(--ease-liquid);
 }
 
 .promille-badge__unit {
@@ -147,13 +130,8 @@ header {
 
 .app-logo {
   display: block;
-  height: 64px;
+  height: calc(64px - var(--shrink, 0) * 32px);
   width: auto;
-  transition: height 0.7s var(--ease-liquid);
-}
-
-#app-header.header--scrolled .app-logo {
-  height: 32px;
 }
 
 .search-row {

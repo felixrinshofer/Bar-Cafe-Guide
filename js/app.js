@@ -2024,19 +2024,23 @@ function addCustomVibe() {
   }
 }
 
-const SCROLL_SHRINK_THRESHOLD = 16;
+const HEADER_SHRINK_RANGE = 60;
 let scrollTicking = false;
 
+function updateHeaderShrink() {
+  const shrink = Math.min(1, Math.max(0, window.scrollY / HEADER_SHRINK_RANGE));
+  el.appHeader.style.setProperty("--shrink", shrink);
+  scrollTicking = false;
+}
+
 function initHeaderShrink() {
+  updateHeaderShrink();
   window.addEventListener(
     "scroll",
     () => {
       if (scrollTicking) return;
       scrollTicking = true;
-      requestAnimationFrame(() => {
-        el.appHeader.classList.toggle("header--scrolled", window.scrollY > SCROLL_SHRINK_THRESHOLD);
-        scrollTicking = false;
-      });
+      requestAnimationFrame(updateHeaderShrink);
     },
     { passive: true }
   );
