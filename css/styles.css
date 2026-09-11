@@ -1608,6 +1608,7 @@ main {
 }
 
 .promille-chart__main {
+  position: relative;
   height: 120px;
 }
 
@@ -1615,6 +1616,56 @@ main {
   width: 100%;
   height: 100%;
   display: block;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.promille-chart__cursor-line {
+  stroke: rgba(0, 86, 179, 0.35);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0;
+}
+
+.promille-chart__cursor-line--active {
+  opacity: 1;
+}
+
+.promille-chart__cursor-dot {
+  fill: #0056b3;
+  stroke: white;
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.promille-chart__cursor-dot--active {
+  opacity: 1;
+}
+
+.promille-chart__tooltip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 30, 0.85);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.promille-chart__tooltip--start {
+  transform: translateX(0);
+  left: 0 !important;
+}
+
+.promille-chart__tooltip--end {
+  transform: translateX(-100%);
+  left: 100% !important;
 }
 
 .promille-chart__axis {

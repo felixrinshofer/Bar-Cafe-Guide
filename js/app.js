@@ -113,6 +113,8 @@ let rankingTimeframe = "24h";
 let profileCalendarOffset = 0;
 let profileChartGranularity = "week";
 let profileChartOffset = 0;
+let currentChartSeries = [];
+let currentChartMaxVal = 1;
 let currentDetailVenueId = null;
 const knownDisplayNames = {};
 let selectedDrinkType = null;
@@ -1396,10 +1398,10 @@ function groupByDay(drinks) {
 }
 
 const CHART_GRANULARITY_CONFIG = {
-  week: { unit: "week", count: 12 },
   month: { unit: "month", count: 12 },
   year: { unit: "year", count: 6 }
 };
+const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 function addUnits(date, unit, n) {
   const d = new Date(date);
@@ -1436,9 +1438,26 @@ function getIntradaySeries(drinks, offset, profile) {
   return series;
 }
 
+function getWeekDaySeries(drinks, offset, profile) {
+  // Immer genau 7 Punkte, einer pro Tag der (verschobenen) Woche, Montag bis Sonntag.
+  const weekStart = addUnits(mondayOfWeek(Date.now()), "day", offset * 7);
+  const series = [];
+  for (let i = 0; i < 7; i++) {
+    const dayStart = addUnits(weekStart, "day", i);
+    const dayEnd = addUnits(dayStart, "day", 1);
+    const dayDrinks = drinks.filter(d => d.createdAt >= dayStart.getTime() && d.createdAt < dayEnd.getTime());
+    const peak = calculatePeakBacForDay(dayDrinks, profile);
+    series.push({ start: dayStart, end: dayEnd, peak });
+  }
+  return series;
+}
+
 function getBacSeries(drinks, granularity, offset, profile) {
   if (granularity === "day") {
     return getIntradaySeries(drinks, offset, profile);
+  }
+  if (granularity === "week") {
+    return getWeekDaySeries(drinks, offset, profile);
   }
 
   const { unit, count } = CHART_GRANULARITY_CONFIG[granularity];
@@ -1462,6 +1481,9 @@ function getBacSeries(drinks, granularity, offset, profile) {
 }
 
 function buildChartLabels(series, granularity) {
+  if (granularity === "week") {
+    return series.map((s, i) => ({ index: i, label: WEEKDAY_LABELS[i] }));
+  }
   const n = series.length;
   const maxLabels = 6;
   const step = Math.max(1, Math.ceil(n / maxLabels));
@@ -1481,6 +1503,22 @@ function buildChartLabels(series, granularity) {
     labels.push({ index: i, label: text });
   });
   return labels;
+}
+
+function formatTooltipLabel(point, index, granularity) {
+  if (granularity === "week") {
+    return `${WEEKDAY_LABELS[index]}, ${point.start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}`;
+  }
+  if (granularity === "day") {
+    return point.start.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (granularity === "month") {
+    return point.start.toLocaleDateString("de-DE", { month: "short", year: "numeric" }).replace(".", "");
+  }
+  if (granularity === "year") {
+    return String(point.start.getFullYear());
+  }
+  return point.start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatChartRangeLabel(series, granularity, offset) {
@@ -1581,6 +1619,8 @@ function buildPromilleChartHtml(series, granularity) {
       <polygon points="${areaPoints}" fill="rgba(0,86,179,0.12)" />
       <polyline points="${linePoints}" fill="none" stroke="#0056b3" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
       ${circles}
+      <line class="promille-chart__cursor-line" x1="0" y1="0" x2="0" y2="${height}" />
+      <circle class="promille-chart__cursor-dot" cx="0" cy="0" r="5" />
     </svg>`;
 
   const fmt = v => v.toFixed(1).replace(".", ",") + "‰";
@@ -1590,9 +1630,12 @@ function buildPromilleChartHtml(series, granularity) {
     .map(l => `<span class="promille-chart__month" style="left:${n > 1 ? (l.index / (n - 1)) * 100 : 0}%">${l.label}</span>`)
     .join("");
 
-  return `<div class="promille-chart">
+  const html = `<div class="promille-chart">
     <div class="promille-chart__body">
-      <div class="promille-chart__main">${svg}</div>
+      <div class="promille-chart__main">
+        ${svg}
+        <div class="promille-chart__tooltip" hidden></div>
+      </div>
       <div class="promille-chart__months">${monthsHtml}</div>
     </div>
     <div class="promille-chart__axis">
@@ -1601,6 +1644,8 @@ function buildPromilleChartHtml(series, granularity) {
       <span>0‰</span>
     </div>
   </div>`;
+
+  return { html, maxVal };
 }
 
 function renderProfileWeekStats(myDrinks, profile) {
@@ -1706,7 +1751,57 @@ function renderProfileChart() {
   const profile = state.userProfiles[state.user.uid];
   const series = getBacSeries(myDrinks, profileChartGranularity, profileChartOffset, profile);
   el.chartRangeLabel.textContent = formatChartRangeLabel(series, profileChartGranularity, profileChartOffset);
-  el.profileChart.innerHTML = buildPromilleChartHtml(series, profileChartGranularity);
+  const { html, maxVal } = buildPromilleChartHtml(series, profileChartGranularity);
+  el.profileChart.innerHTML = html;
+  currentChartSeries = series;
+  currentChartMaxVal = maxVal;
+  initChartInteraction();
+}
+
+function initChartInteraction() {
+  const svg = el.profileChart.querySelector(".promille-chart__svg");
+  const tooltip = el.profileChart.querySelector(".promille-chart__tooltip");
+  const cursorLine = el.profileChart.querySelector(".promille-chart__cursor-line");
+  const cursorDot = el.profileChart.querySelector(".promille-chart__cursor-dot");
+  if (!svg || !currentChartSeries.length) return;
+
+  const width = 300;
+  const height = 120;
+  const n = currentChartSeries.length;
+  const stepX = n > 1 ? width / (n - 1) : width;
+
+  function showAtClientX(clientX) {
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    let index = Math.round((ratio * width) / stepX);
+    index = Math.min(n - 1, Math.max(0, index));
+    const point = currentChartSeries[index];
+    const x = index * stepX;
+    const y = height - (point.peak / currentChartMaxVal) * (height - 10);
+
+    cursorLine.setAttribute("x1", x);
+    cursorLine.setAttribute("x2", x);
+    cursorDot.setAttribute("cx", x);
+    cursorDot.setAttribute("cy", y);
+    cursorLine.classList.add("promille-chart__cursor-line--active");
+    cursorDot.classList.add("promille-chart__cursor-dot--active");
+
+    tooltip.hidden = false;
+    tooltip.textContent = `${point.peak.toFixed(2).replace(".", ",")}‰ · ${formatTooltipLabel(point, index, profileChartGranularity)}`;
+    const leftPct = n > 1 ? (index / (n - 1)) * 100 : 50;
+    tooltip.style.left = `${leftPct}%`;
+    tooltip.classList.toggle("promille-chart__tooltip--start", leftPct < 15);
+    tooltip.classList.toggle("promille-chart__tooltip--end", leftPct > 85);
+  }
+
+  svg.addEventListener("pointerdown", e => {
+    showAtClientX(e.clientX);
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove", e => {
+    if (e.buttons) showAtClientX(e.clientX);
+  });
 }
 
 function renderProfileSheet() {
