@@ -410,15 +410,13 @@ function renderTypeOverview() {
   el.typeOverview.innerHTML = "";
   if (state.view !== "list" || state.venues.length === 0) return;
 
-  const favCount = state.venues.filter(v => state.favorites.has(v.id)).length;
   const favActive = state.filters.favoritesOnly;
   const favTile = document.createElement("button");
   favTile.type = "button";
   favTile.className = `type-tile type-tile--favorites${favActive ? " type-tile--active" : ""}`;
   favTile.innerHTML = `
-    <span class="type-tile__emoji">⭐</span>
+    <span class="type-tile__icon">⭐</span>
     <span class="type-tile__label">Favoriten</span>
-    <span class="type-tile__count">${favCount} ${favCount === 1 ? "Ort" : "Orte"}</span>
   `;
   favTile.addEventListener("click", () => {
     state.filters.favoritesOnly = !state.filters.favoritesOnly;
@@ -426,19 +424,14 @@ function renderTypeOverview() {
   });
   el.typeOverview.appendChild(favTile);
 
-  const counts = Object.fromEntries(TYPE_ORDER.map(t => [t, 0]));
-  state.venues.forEach(v => {
-    if (counts[v.type] !== undefined) counts[v.type]++;
-  });
   TYPE_ORDER.forEach(type => {
     const active = state.filters.types.includes(type);
     const tile = document.createElement("button");
     tile.type = "button";
     tile.className = `type-tile type-tile--${type}${active ? " type-tile--active" : ""}`;
     tile.innerHTML = `
-      <span class="type-tile__emoji">${TYPE_EMOJI[type]}</span>
+      <span class="type-tile__icon">${TYPE_EMOJI[type]}</span>
       <span class="type-tile__label">${TYPE_LABELS[type]}</span>
-      <span class="type-tile__count">${counts[type]} ${counts[type] === 1 ? "Ort" : "Orte"}</span>
     `;
     tile.addEventListener("click", () => {
       toggleInArray(state.filters.types, type);

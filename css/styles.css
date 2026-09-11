@@ -72,6 +72,39 @@
   transform: scale(0.97);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .dock-btn,
+  .fav-btn,
+  .chip,
+  .venue-card,
+  .type-tile,
+  .btn,
+  .segmented button,
+  .ranking-row--clickable,
+  .drink-type-btn,
+  .drink-venue-item,
+  .account-avatar-btn,
+  #locate-btn {
+    transition: opacity 160ms ease-out;
+  }
+
+  .dock-btn:active,
+  .fav-btn:active,
+  .chip:active,
+  .venue-card:active,
+  .type-tile:active,
+  .btn:active,
+  .segmented button:active,
+  .ranking-row--clickable:active,
+  .drink-type-btn:active,
+  .drink-venue-item:active,
+  .account-avatar-btn:active,
+  #locate-btn:active {
+    transform: none;
+    opacity: 0.7;
+  }
+}
+
 html, body {
   margin: 0;
   height: 100%;
@@ -92,12 +125,16 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(238, 241, 245, calc(0.55 + 0.13 * var(--shrink, 0)));
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.04) 55%),
+    rgba(238, 241, 245, calc(0.55 + 0.13 * var(--shrink, 0)));
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   padding: calc(env(safe-area-inset-top) + 14px) 16px 10px;
   border-radius: 0 0 calc(var(--shrink, 0) * 36px) calc(var(--shrink, 0) * 36px);
-  box-shadow: 0 calc(var(--shrink, 0) * 18px) calc(var(--shrink, 0) * 40px) rgba(28, 28, 30, calc(var(--shrink, 0) * 0.14));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 calc(var(--shrink, 0) * 18px) calc(var(--shrink, 0) * 40px) rgba(28, 28, 30, calc(var(--shrink, 0) * 0.14));
 }
 
 .app-logo-wrap {
@@ -118,11 +155,16 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--glass);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05) 60%),
+    var(--glass);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-float);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    var(--shadow-float);
   font-size: calc(1.4rem - var(--shrink, 0) * 0.7rem);
   font-weight: 800;
   color: var(--text);
@@ -137,19 +179,25 @@ header {
 }
 
 .promille-badge--green {
-  background: rgba(52, 199, 89, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05) 60%),
+    rgba(52, 199, 89, 0.24);
   border-color: rgba(52, 199, 89, 0.4);
   color: #1b8a3a;
 }
 
 .promille-badge--yellow {
-  background: rgba(255, 204, 0, 0.3);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05) 60%),
+    rgba(255, 204, 0, 0.3);
   border-color: rgba(255, 204, 0, 0.45);
   color: #8a6d00;
 }
 
 .promille-badge--red {
-  background: rgba(255, 59, 48, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05) 60%),
+    rgba(255, 59, 48, 0.24);
   border-color: rgba(255, 59, 48, 0.4);
   color: #c62828;
 }
@@ -361,57 +409,48 @@ main {
 }
 
 .type-tile {
-  flex: 0 0 calc((100% - 24px) / 4);
-  min-width: 0;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 10px 8px;
+  border-radius: 999px;
+  padding: 9px 15px;
   text-align: left;
-  color: white;
-  box-shadow: var(--shadow-soft);
-  position: relative;
-  overflow: hidden;
+  white-space: nowrap;
 }
 
-.type-tile--bar { background: var(--grad-bar); }
-.type-tile--cafe { background: var(--grad-cafe); }
-.type-tile--dancebar { background: var(--grad-dancebar); }
-.type-tile--club { background: var(--grad-club); }
-.type-tile--restaurant { background: var(--grad-restaurant); }
-.type-tile--spot { background: var(--grad-spot); }
-.type-tile--biergarten { background: var(--grad-biergarten); }
-.type-tile--festzelt { background: var(--grad-festzelt); }
-.type-tile--favorites { background: var(--grad-favorites); }
-
-.type-tile--active {
-  outline: 3px solid rgba(28, 28, 30, 0.55);
-  outline-offset: 2px;
-}
-
-.type-tile__emoji {
-  font-size: 1.2rem;
-  display: block;
-  margin-bottom: 10px;
+.type-tile__icon {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .type-tile__label {
-  display: block;
-  font-weight: 700;
-  font-size: 0.78rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.type-tile__count {
-  display: block;
-  font-size: 0.68rem;
-  opacity: 0.85;
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.type-tile--bar { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+.type-tile--cafe { background: rgba(0, 86, 179, 0.12); color: #0056b3; }
+.type-tile--dancebar { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.type-tile--club { background: rgba(247, 103, 7, 0.12); color: #f76707; }
+.type-tile--restaurant { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.type-tile--spot { background: rgba(219, 39, 119, 0.12); color: #db2777; }
+.type-tile--biergarten { background: rgba(212, 160, 23, 0.12); color: #d4a017; }
+.type-tile--festzelt { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
+.type-tile--favorites { background: rgba(217, 119, 6, 0.12); color: #d97706; }
+
+.type-tile--bar.type-tile--active { background: #dc2626; color: white; }
+.type-tile--cafe.type-tile--active { background: #0056b3; color: white; }
+.type-tile--dancebar.type-tile--active { background: #16a34a; color: white; }
+.type-tile--club.type-tile--active { background: #f76707; color: white; }
+.type-tile--restaurant.type-tile--active { background: #7c3aed; color: white; }
+.type-tile--spot.type-tile--active { background: #db2777; color: white; }
+.type-tile--biergarten.type-tile--active { background: #d4a017; color: white; }
+.type-tile--festzelt.type-tile--active { background: #0d9488; color: white; }
+.type-tile--favorites.type-tile--active { background: #d97706; color: white; }
 
 .venue-card {
   background: var(--surface-solid);
@@ -610,11 +649,16 @@ main {
   gap: 12px;
   padding: 8px 16px;
   border-radius: 999px;
-  background: var(--glass);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.06) 55%),
+    var(--glass);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-lift);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+    var(--shadow-lift);
   z-index: 20;
 }
 
@@ -736,6 +780,17 @@ main {
 
 .sheet-backdrop--open .sheet {
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+    transform: none;
+  }
+
+  .sheet-backdrop--open .sheet {
+    transform: none;
+  }
 }
 
 .sheet__handle {
