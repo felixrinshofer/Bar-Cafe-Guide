@@ -46,6 +46,7 @@ html, body {
   height: 100%;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -683,12 +684,13 @@ main {
 .sheet {
   position: relative;
   width: 100%;
-  max-height: 92vh;
-  max-height: 92dvh;
+  max-height: 85vh;
+  max-height: 85dvh;
   background: var(--surface-solid);
   border-radius: 28px 28px 0 0;
   box-shadow: var(--shadow-lift);
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
