@@ -49,11 +49,14 @@ const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
 const DRINK_TYPES = [
   { id: "beer03", label: "Bier 0,3l", emoji: "🍺" },
   { id: "beer", label: "Bier 0,5l", emoji: "🍺" },
-  { id: "beerMass", label: "Maß (1l)", emoji: "🍻" },
+  { id: "beerMass", label: "Maß 1l", emoji: "🍻" },
   { id: "wine", label: "Wein", emoji: "🍷" },
   { id: "aperol", label: "Aperol", emoji: "🥂" },
   { id: "cocktail", label: "Cocktail", emoji: "🍸" },
-  { id: "coffee", label: "Caffè", emoji: "☕" }
+  { id: "shot", label: "Shot", emoji: "🥃" },
+  { id: "coffee", label: "Caffè", emoji: "☕" },
+  { id: "matcha", label: "Matcha", emoji: "🍵" },
+  { id: "water", label: "Wasser", emoji: "💧" }
 ];
 const DRINK_LOOKUP = Object.fromEntries(DRINK_TYPES.map(d => [d.id, d]));
 const DRINK_ALCOHOL_GRAMS = {
@@ -63,7 +66,10 @@ const DRINK_ALCOHOL_GRAMS = {
   wine: 19, // 0,2l Glas, ~12 Vol.-%
   aperol: 13, // Aperol Spritz, ~200ml, ~8 Vol.-%
   cocktail: 24, // ~200ml, ~15 Vol.-%
-  coffee: 0
+  shot: 13, // 4cl, ~40 Vol.-%
+  coffee: 0,
+  matcha: 0,
+  water: 0
 };
 const AVG_BODY_WEIGHT_KG = 75;
 const ELIMINATION_PER_HOUR = 0.15;
