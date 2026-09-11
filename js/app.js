@@ -218,7 +218,10 @@ const el = {
   authGender: document.getElementById("auth-gender"),
   authError: document.getElementById("auth-error"),
   authSubmit: document.getElementById("auth-submit"),
+  accountAvatarBtn: document.getElementById("account-avatar-btn"),
   accountAvatar: document.getElementById("account-avatar"),
+  accountPhotoInput: document.getElementById("account-photo-input"),
+  accountPhotoStatus: document.getElementById("account-photo-status"),
   accountName: document.getElementById("account-name"),
   accountEmail: document.getElementById("account-email"),
   profileWeight: document.getElementById("profile-weight"),
@@ -1086,6 +1089,24 @@ async function handleProfileSave() {
   }
 }
 
+async function handleAccountPhotoChange(e) {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file || !state.user) return;
+  el.accountPhotoStatus.hidden = false;
+  el.accountPhotoStatus.textContent = "Bild wird hochgeladen…";
+  try {
+    const base64 = await fileToCompressedBase64(file);
+    await updateUserProfile(state.user.uid, { photoUrl: base64 });
+    el.accountPhotoStatus.textContent = "Profilbild aktualisiert.";
+    setTimeout(() => {
+      el.accountPhotoStatus.hidden = true;
+    }, 1500);
+  } catch (err) {
+    el.accountPhotoStatus.textContent = "Bild konnte nicht gespeichert werden. Bitte erneut versuchen.";
+  }
+}
+
 function openAccountSheet() {
   if (state.user) populateProfileEditFields();
   el.accountSheet.hidden = false;
@@ -1138,10 +1159,12 @@ function renderAccountUI(user) {
     if (user.displayName) knownDisplayNames[user.uid] = user.displayName;
     const name = user.displayName || knownDisplayNames[user.uid] || pendingRegisterName || user.email;
     const initial = name.charAt(0).toUpperCase();
+    const photoUrl = state.userProfiles[user.uid]?.photoUrl;
+    const avatarHtml = photoUrl ? `<img class="avatar-img" src="${photoUrl}" alt="" />` : initial;
     el.accountName.textContent = name;
     el.accountEmail.textContent = user.email;
-    el.accountAvatar.textContent = initial;
-    el.accountBtn.textContent = initial;
+    el.accountAvatar.innerHTML = avatarHtml;
+    el.accountBtn.innerHTML = avatarHtml;
     el.accountBtn.classList.add("account-btn--active");
   } else {
     el.accountLoggedOut.hidden = false;
@@ -1668,8 +1691,9 @@ function renderProfileChart() {
 function renderProfileSheet() {
   if (!state.user) return;
   const name = state.user.displayName || state.user.email;
+  const photoUrl = state.userProfiles[state.user.uid]?.photoUrl;
   el.profileName.textContent = name;
-  el.profileAvatar.textContent = name.charAt(0).toUpperCase();
+  el.profileAvatar.innerHTML = photoUrl ? `<img class="avatar-img" src="${photoUrl}" alt="" />` : name.charAt(0).toUpperCase();
 
   const myDrinks = state.drinks.filter(d => d.uid === state.user.uid);
   const profile = state.userProfiles[state.user.uid];
@@ -1950,6 +1974,8 @@ function initEvents() {
   el.authForm.addEventListener("submit", handleAuthSubmit);
   el.accountLogout.addEventListener("click", () => logoutUser());
   el.profileSaveBtn.addEventListener("click", handleProfileSave);
+  el.accountAvatarBtn.addEventListener("click", () => el.accountPhotoInput.click());
+  el.accountPhotoInput.addEventListener("change", handleAccountPhotoChange);
 
   el.addDrinkBtn.addEventListener("click", openDrinkSheet);
   el.drinkSheet.addEventListener("click", e => {
@@ -2189,6 +2215,7 @@ function init() {
 
   subscribeUserProfiles(profiles => {
     state.userProfiles = Object.fromEntries(profiles.map(p => [p.uid, p]));
+    if (state.user) renderAccountUI(state.user);
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
     if (!el.accountSheet.hidden && state.user) populateProfileEditFields();

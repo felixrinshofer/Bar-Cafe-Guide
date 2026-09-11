@@ -158,12 +158,17 @@
 
         <div id="account-logged-in" hidden>
           <div class="account-profile">
-            <div id="account-avatar" class="account-avatar"></div>
+            <button type="button" id="account-avatar-btn" class="account-avatar-btn" aria-label="Profilbild ändern">
+              <div id="account-avatar" class="account-avatar"></div>
+              <span class="account-avatar-btn__badge">📷</span>
+            </button>
+            <input id="account-photo-input" type="file" accept="image/*" hidden />
             <div>
               <p id="account-name" class="account-name"></p>
               <p id="account-email" class="account-email"></p>
             </div>
           </div>
+          <p id="account-photo-status" class="field-hint" hidden></p>
 
           <p class="field-label">Für den Promillewert</p>
           <label class="field-label" for="profile-weight">Gewicht (kg)</label>
