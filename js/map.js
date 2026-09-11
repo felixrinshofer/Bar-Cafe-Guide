@@ -1,8 +1,9 @@
-import { MapLibreMap, Marker, NavigationControl, GeolocateControl } from "../vendor/maplibre/maplibre-gl.mjs";
+import { MapLibreMap, Marker, NavigationControl, GeolocateControl, Popup } from "../vendor/maplibre/maplibre-gl.mjs";
 
 let map = null;
 let markers = [];
 let userMarker = null;
+let peopleMarkers = [];
 
 const TYPE_COLORS = {
   bar: "#dc2626",
@@ -111,6 +112,39 @@ function createDotElement(color, size) {
   return el;
 }
 
+function createAvatarElement(photoUrl, size, borderColor, borderWidth) {
+  const el = document.createElement("div");
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.borderRadius = "50%";
+  el.style.border = `${borderWidth}px solid ${borderColor}`;
+  el.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
+  el.style.backgroundImage = `url(${photoUrl})`;
+  el.style.backgroundSize = "cover";
+  el.style.backgroundPosition = "center";
+  el.style.cursor = "pointer";
+  return el;
+}
+
+function createInitialElement(name, size, borderColor, borderWidth) {
+  const el = document.createElement("div");
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.borderRadius = "50%";
+  el.style.border = `${borderWidth}px solid ${borderColor}`;
+  el.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.35)";
+  el.style.background = "linear-gradient(155deg, #1a6fd6, #0056b3)";
+  el.style.color = "white";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.fontWeight = "700";
+  el.style.fontSize = `${Math.round(size * 0.42)}px`;
+  el.style.cursor = "pointer";
+  el.textContent = (name || "?").charAt(0).toUpperCase();
+  return el;
+}
+
 export function renderVenueMarkers(venues, onSelect) {
   if (!map) return;
   markers.forEach(m => m.remove());
@@ -123,15 +157,28 @@ export function renderVenueMarkers(venues, onSelect) {
   });
 }
 
-export function setUserLocation(lat, lng) {
+export function setUserLocation(lat, lng, photoUrl) {
   if (!map) return;
-  if (userMarker) {
-    userMarker.setLngLat([lng, lat]);
-  } else {
-    const el = createDotElement("#0056b3", 16);
-    el.style.border = "3px solid white";
-    userMarker = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
-  }
+  if (userMarker) userMarker.remove();
+  const el = photoUrl ? createAvatarElement(photoUrl, 38, "#0056b3", 3) : createDotElement("#0056b3", 16);
+  if (!photoUrl) el.style.border = "3px solid white";
+  userMarker = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+}
+
+export function renderPeopleMarkers(people) {
+  if (!map) return;
+  peopleMarkers.forEach(m => m.remove());
+  peopleMarkers = [];
+  people.forEach(p => {
+    const el = p.photoUrl
+      ? createAvatarElement(p.photoUrl, 34, "#ffffff", 3)
+      : createInitialElement(p.name, 34, "#ffffff", 3);
+    const marker = new Marker({ element: el })
+      .setLngLat([p.lng, p.lat])
+      .setPopup(new Popup({ offset: 20, closeButton: false }).setText(p.name))
+      .addTo(map);
+    peopleMarkers.push(marker);
+  });
 }
 
 export function panTo(lat, lng, zoom = 15) {

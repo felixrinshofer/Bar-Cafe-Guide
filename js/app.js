@@ -2,7 +2,7 @@ import { suggestedCategories, suggestedVibes } from "./data.js";
 import { haversineDistanceKm, formatDistance, getCurrentPosition } from "./geo.js";
 import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.js";
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
-import { initMap, renderVenueMarkers, setUserLocation, panTo, invalidateMapSize } from "./map.js";
+import { initMap, renderVenueMarkers, setUserLocation, renderPeopleMarkers, panTo, invalidateMapSize } from "./map.js";
 import {
   subscribeVenues,
   putVenue,
@@ -484,8 +484,13 @@ async function handleLocate() {
     state.userLocation = pos;
     state.distances = computeDistances();
     state.filters.sortBy = "distance";
-    if (mapInitialized) setUserLocation(pos.lat, pos.lng);
+    if (mapInitialized) setUserLocation(pos.lat, pos.lng, state.userProfiles[state.user?.uid]?.photoUrl);
     if (state.view === "map") panTo(pos.lat, pos.lng, 14);
+    if (state.user) {
+      updateUserProfile(state.user.uid, { lat: pos.lat, lng: pos.lng, locationUpdatedAt: Date.now() }).catch(
+        err => console.warn("Standort konnte nicht geteilt werden", err)
+      );
+    }
     persistAndRender();
     el.locateBtn.textContent = "📍 Standort aktualisieren";
   } catch (err) {
@@ -494,6 +499,14 @@ async function handleLocate() {
   } finally {
     el.locateBtn.disabled = false;
   }
+}
+
+function renderPeopleOnMap() {
+  if (!mapInitialized) return;
+  const people = Object.values(state.userProfiles)
+    .filter(p => p.uid !== state.user?.uid && typeof p.lat === "number" && typeof p.lng === "number")
+    .map(p => ({ lat: p.lat, lng: p.lng, photoUrl: p.photoUrl, name: p.displayName || "?" }));
+  renderPeopleMarkers(people);
 }
 
 function setView(view) {
@@ -505,7 +518,8 @@ function setView(view) {
     if (!mapInitialized) {
       initMap("map");
       mapInitialized = true;
-      if (state.userLocation) setUserLocation(state.userLocation.lat, state.userLocation.lng);
+      if (state.userLocation) setUserLocation(state.userLocation.lat, state.userLocation.lng, state.userProfiles[state.user?.uid]?.photoUrl);
+      renderPeopleOnMap();
     }
     invalidateMapSize();
   }
@@ -2221,6 +2235,7 @@ function init() {
     if (!el.profileSheet.hidden) renderProfileSheet();
     if (!el.accountSheet.hidden && state.user) populateProfileEditFields();
     renderHeaderPromilleBadge();
+    renderPeopleOnMap();
   });
 
   setInterval(renderHeaderPromilleBadge, 60000);
