@@ -1281,12 +1281,12 @@ function closeRankingSheet() {
   el.rankingSheet.hidden = true;
 }
 
-function calculateBac(drinks, profile) {
+function calculateBac(drinks, profile, asOf = Date.now()) {
   const totalGrams = drinks.reduce((sum, d) => sum + (DRINK_ALCOHOL_GRAMS[d.drinkType] || 0), 0);
   if (totalGrams <= 0) return 0;
   const peakBac = totalGrams / (getUserWeight(profile) * getUserR(profile));
   const earliest = Math.min(...drinks.map(d => d.createdAt));
-  const hoursElapsed = Math.max(0, (Date.now() - earliest) / 3600000);
+  const hoursElapsed = Math.max(0, (asOf - earliest) / 3600000);
   return Math.max(0, peakBac - hoursElapsed * ELIMINATION_PER_HOUR);
 }
 
@@ -1353,7 +1353,6 @@ function groupByDay(drinks) {
 }
 
 const CHART_GRANULARITY_CONFIG = {
-  day: { unit: "day", count: 14 },
   week: { unit: "week", count: 12 },
   month: { unit: "month", count: 12 },
   year: { unit: "year", count: 6 }
@@ -1375,25 +1374,31 @@ function unitStart(date, unit) {
   return new Date(date.getFullYear(), 0, 1);
 }
 
-function getBacSeries(drinks, granularity, offset, profile) {
-  const { count } = CHART_GRANULARITY_CONFIG[granularity];
+function getIntradaySeries(drinks, offset, profile) {
+  // Zeigt den tatsächlichen Promilleverlauf (Anstieg + Abbau) über ein einzelnes rollierendes 24h-Fenster,
+  // stündlich abgetastet, statt eines Trends über mehrere Tage.
+  const HOUR_MS = 60 * 60 * 1000;
+  const DAY_MS = 24 * HOUR_MS;
+  const SAMPLES = 24;
+  const windowEnd = Date.now() + offset * DAY_MS;
+  const windowStart = windowEnd - DAY_MS;
 
+  const series = [];
+  for (let i = 0; i <= SAMPLES; i++) {
+    const t = windowStart + i * (DAY_MS / SAMPLES);
+    const relevantDrinks = drinks.filter(d => d.createdAt <= t && d.createdAt >= t - DAY_MS);
+    const bac = calculateBac(relevantDrinks, profile, t);
+    series.push({ start: new Date(t), end: new Date(t), peak: bac });
+  }
+  return series;
+}
+
+function getBacSeries(drinks, granularity, offset, profile) {
   if (granularity === "day") {
-    // Rollierende 24h-Fenster statt Kalendertage, damit eine Bar-Nacht (z.B. 21 - 3 Uhr) nicht an Mitternacht zerschnitten wird.
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const latestBucketEnd = Date.now() + offset * count * DAY_MS;
-    const series = [];
-    for (let i = count - 1; i >= 0; i--) {
-      const bucketEndMs = latestBucketEnd - i * DAY_MS;
-      const bucketStartMs = bucketEndMs - DAY_MS;
-      const bucketDrinks = drinks.filter(d => d.createdAt >= bucketStartMs && d.createdAt < bucketEndMs);
-      const peak = calculatePeakBacForDay(bucketDrinks, profile);
-      series.push({ start: new Date(bucketStartMs), end: new Date(bucketEndMs), peak });
-    }
-    return series;
+    return getIntradaySeries(drinks, offset, profile);
   }
 
-  const { unit } = CHART_GRANULARITY_CONFIG[granularity];
+  const { unit, count } = CHART_GRANULARITY_CONFIG[granularity];
   const currentBucketStart = unitStart(new Date(), unit);
   const latestBucketStart = addUnits(currentBucketStart, unit, offset * count);
 
@@ -1421,7 +1426,9 @@ function buildChartLabels(series, granularity) {
   series.forEach((s, i) => {
     if (i % step !== 0 && i !== n - 1) return;
     let text;
-    if (granularity === "month") {
+    if (granularity === "day") {
+      text = s.start.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+    } else if (granularity === "month") {
       text = s.start.toLocaleDateString("de-DE", { month: "short" }).replace(".", "");
     } else if (granularity === "year") {
       text = String(s.start.getFullYear());
@@ -1434,6 +1441,11 @@ function buildChartLabels(series, granularity) {
 }
 
 function formatChartRangeLabel(series, granularity) {
+  if (granularity === "day") {
+    const fmt = d => `${d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
+    return `${fmt(series[0].start)} – ${fmt(series[series.length - 1].start)}`;
+  }
+
   const first = series[0].start;
   const last = new Date(series[series.length - 1].end.getTime() - 1);
   const sameYear = first.getFullYear() === last.getFullYear();
@@ -1510,9 +1522,11 @@ function buildPromilleChartHtml(series, granularity) {
   const linePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const areaPoints = `0,${height} ${linePoints} ${width},${height}`;
 
+  const showAllPoints = points.length <= 15;
   const circles = points
     .map((p, i) => {
       const isLast = i === points.length - 1;
+      if (!isLast && !showAllPoints) return "";
       return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isLast ? 5 : 3.5}" fill="${
         isLast ? "#0056b3" : "white"
       }" stroke="#0056b3" stroke-width="2" />`;
