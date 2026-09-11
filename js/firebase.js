@@ -105,6 +105,10 @@ export async function addDrink(drink) {
   return id;
 }
 
+export async function deleteDrink(id) {
+  await deleteDoc(doc(drinksCol, id));
+}
+
 export function subscribeUserProfiles(onChange, onError) {
   return onSnapshot(
     usersCol,

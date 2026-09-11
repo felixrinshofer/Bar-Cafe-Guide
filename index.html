@@ -278,6 +278,13 @@
           <div id="drink-venue-list" class="drink-venue-list"></div>
         </div>
 
+        <div id="drink-step-success" class="drink-success" hidden>
+          <div class="drink-success__check">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+          </div>
+          <p id="drink-success-text" class="drink-success__text"></p>
+        </div>
+
         <p id="drink-status" class="field-hint" hidden></p>
       </div>
     </div>
@@ -289,7 +296,7 @@
       <div class="sheet__body">
         <h2>Rangliste</h2>
         <div id="ranking-filter" class="segmented">
-          <button type="button" class="chip--active" data-filter="today">Heute</button>
+          <button type="button" class="chip--active" data-filter="24h">Letzte 24h</button>
           <button type="button" data-filter="month">Monat</button>
           <button type="button" data-filter="all">Gesamt</button>
         </div>
@@ -328,7 +335,18 @@
         <p class="field-label">Diese Woche</p>
         <div id="profile-week-stats" class="profile-stats-row"></div>
 
-        <p class="field-label">Letzte 12 Wochen</p>
+        <p class="field-label">Verlauf</p>
+        <div id="chart-granularity" class="segmented">
+          <button type="button" data-granularity="day">Tag</button>
+          <button type="button" class="chip--active" data-granularity="week">Woche</button>
+          <button type="button" data-granularity="month">Monat</button>
+          <button type="button" data-granularity="year">Jahr</button>
+        </div>
+        <div class="profile-calendar__header profile-chart-nav">
+          <button type="button" class="profile-calendar__nav" id="chart-prev">‹</button>
+          <span class="profile-calendar__title" id="chart-range-label"></span>
+          <button type="button" class="profile-calendar__nav" id="chart-next">›</button>
+        </div>
         <div id="profile-chart"></div>
 
         <p class="field-label">Serie</p>

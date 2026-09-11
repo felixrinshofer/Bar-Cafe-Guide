@@ -14,6 +14,7 @@ import {
   logoutUser,
   subscribeDrinks,
   addDrink,
+  deleteDrink,
   subscribeUserProfiles,
   updateUserProfile,
   subscribeRatings,
@@ -46,7 +47,9 @@ const TYPE_EMOJI = {
 };
 const PRICE_LABELS = { 1: "€", 2: "€€", 3: "€€€" };
 const DRINK_TYPES = [
-  { id: "beer", label: "Bier", emoji: "🍺" },
+  { id: "beer03", label: "Bier 0,3l", emoji: "🍺" },
+  { id: "beer", label: "Bier 0,5l", emoji: "🍺" },
+  { id: "beerMass", label: "Maß (1l)", emoji: "🍻" },
   { id: "wine", label: "Wein", emoji: "🍷" },
   { id: "aperol", label: "Aperol", emoji: "🥂" },
   { id: "cocktail", label: "Cocktail", emoji: "🍸" },
@@ -54,7 +57,9 @@ const DRINK_TYPES = [
 ];
 const DRINK_LOOKUP = Object.fromEntries(DRINK_TYPES.map(d => [d.id, d]));
 const DRINK_ALCOHOL_GRAMS = {
+  beer03: 12, // 0,3l, ~5 Vol.-%
   beer: 20, // 0,5l, ~5 Vol.-%
+  beerMass: 40, // 1l Maß, ~5 Vol.-%
   wine: 19, // 0,2l Glas, ~12 Vol.-%
   aperol: 13, // Aperol Spritz, ~200ml, ~8 Vol.-%
   cocktail: 24, // ~200ml, ~15 Vol.-%
@@ -98,11 +103,15 @@ let authMode = "login";
 let pendingRegisterName = null;
 let registerGenderValue = "other";
 let editGenderValue = "other";
-let rankingTimeframe = "today";
+let rankingTimeframe = "24h";
 let profileCalendarOffset = 0;
+let profileChartGranularity = "week";
+let profileChartOffset = 0;
 let currentDetailVenueId = null;
 const knownDisplayNames = {};
 let selectedDrinkType = null;
+let currentPersonDrinksUid = null;
+let currentPersonDrinksName = null;
 
 let mapInitialized = false;
 
@@ -228,6 +237,8 @@ const el = {
   drinkBack: document.getElementById("drink-back"),
   drinkVenueSearch: document.getElementById("drink-venue-search"),
   drinkVenueList: document.getElementById("drink-venue-list"),
+  drinkStepSuccess: document.getElementById("drink-step-success"),
+  drinkSuccessText: document.getElementById("drink-success-text"),
   drinkStatus: document.getElementById("drink-status"),
 
   rankingSheet: document.getElementById("ranking-sheet"),
@@ -248,6 +259,10 @@ const el = {
   profileAvatar: document.getElementById("profile-avatar"),
   profileName: document.getElementById("profile-name"),
   profileWeekStats: document.getElementById("profile-week-stats"),
+  chartGranularity: document.getElementById("chart-granularity"),
+  chartPrev: document.getElementById("chart-prev"),
+  chartNext: document.getElementById("chart-next"),
+  chartRangeLabel: document.getElementById("chart-range-label"),
   profileChart: document.getElementById("profile-chart"),
   profileStreaks: document.getElementById("profile-streaks"),
   profileCalendar: document.getElementById("profile-calendar")
@@ -345,21 +360,24 @@ function renderVenueCard(v) {
       ? `<img class="venue-card__thumb" src="${v.photos[0]}" alt="" />`
       : `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
 
+  const metaParts = [TYPE_LABELS[v.type], v.category || "—", PRICE_LABELS[v.priceRange]];
+  if (ratingStats) metaParts.push(`⭐ ${ratingStats.avg.toFixed(1).replace(".", ",")} (${ratingStats.count})`);
+  if (v.neighborhood) metaParts.push(v.neighborhood);
+  if (dist !== undefined) metaParts.push(formatDistance(dist));
+
   card.innerHTML = `
     ${thumbHtml}
     <div class="venue-card__main">
       <div class="venue-card__top">
         <div>
           <h3 class="venue-card__name">${v.name}</h3>
-          <p class="venue-card__meta">${TYPE_LABELS[v.type]} · ${v.category || "—"} · ${PRICE_LABELS[v.priceRange]}</p>
+          <p class="venue-card__meta">${metaParts.join(" · ")}</p>
         </div>
         <button class="fav-btn ${isFav ? "fav-btn--active" : ""}" aria-label="Favorit" data-id="${v.id}">♥</button>
       </div>
-      ${ratingStats ? `<p class="venue-card__rating">⭐ ${ratingStats.avg.toFixed(1).replace(".", ",")} <span class="venue-card__rating-count">(${ratingStats.count})</span></p>` : ""}
-      <p class="venue-card__neighborhood">${v.neighborhood || ""}${dist !== undefined ? ` · ${formatDistance(dist)}` : ""}</p>
-      ${v.openingHours ? `<p class="venue-card__hours">🕒 ${v.openingHours}</p>` : ""}
+      <p class="venue-card__hours">${v.openingHours ? `🕒 ${v.openingHours}` : ""}</p>
       <div class="venue-card__vibes">
-        ${(v.vibes || []).map(vb => `<span class="vibe-tag">${vb}</span>`).join("")}
+        ${(v.vibes || []).slice(0, 3).map(vb => `<span class="vibe-tag">${vb}</span>`).join("")}
       </div>
     </div>
   `;
@@ -1142,6 +1160,7 @@ function openDrinkSheet() {
   selectedDrinkType = null;
   el.drinkStepType.hidden = false;
   el.drinkStepVenue.hidden = true;
+  el.drinkStepSuccess.hidden = true;
   el.drinkStatus.hidden = true;
   el.drinkVenueSearch.value = "";
   renderDrinkTypeGrid();
@@ -1192,15 +1211,17 @@ function renderDrinkVenueList(filter) {
   el.drinkVenueList.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", () => {
       const venue = state.venues.find(v => v.id === btn.dataset.id);
-      if (venue) handleSaveDrink(venue);
+      if (venue) handleSaveDrink(venue, btn);
     });
   });
 }
 
-async function handleSaveDrink(venue) {
+async function handleSaveDrink(venue, btnEl) {
   if (!state.user || !selectedDrinkType) return;
-  el.drinkStatus.hidden = false;
-  el.drinkStatus.textContent = "Speichern…";
+  el.drinkStatus.hidden = true;
+  const buttons = el.drinkVenueList.querySelectorAll("button");
+  buttons.forEach(b => (b.disabled = true));
+  if (btnEl) btnEl.classList.add("drink-venue-item--loading");
   try {
     await addDrink({
       uid: state.user.uid,
@@ -1209,30 +1230,37 @@ async function handleSaveDrink(venue) {
       venueName: venue.name,
       drinkType: selectedDrinkType
     });
-    el.drinkStatus.textContent = `${DRINK_LOOKUP[selectedDrinkType].emoji} Gespeichert!`;
-    setTimeout(closeDrinkSheet, 800);
+    showDrinkSuccess(venue);
   } catch (err) {
+    buttons.forEach(b => (b.disabled = false));
+    if (btnEl) btnEl.classList.remove("drink-venue-item--loading");
+    el.drinkStatus.hidden = false;
     el.drinkStatus.textContent = "Fehler beim Speichern. Bitte erneut versuchen.";
   }
 }
 
+function showDrinkSuccess(venue) {
+  const type = DRINK_LOOKUP[selectedDrinkType];
+  el.drinkStepVenue.hidden = true;
+  el.drinkSuccessText.textContent = `${type.emoji} ${type.label} bei ${venue.name} eingetragen`;
+  el.drinkStepSuccess.hidden = false;
+  if (navigator.vibrate) navigator.vibrate(15);
+  setTimeout(closeDrinkSheet, 1100);
+}
+
 const RANKING_EMPTY_MESSAGES = {
-  today: "Noch keine Getränke heute eingetragen.",
+  "24h": "Noch keine Getränke in den letzten 24h eingetragen.",
   month: "Noch keine Getränke diesen Monat eingetragen.",
   all: "Noch keine Getränke eingetragen."
 };
 
 function isInTimeframe(createdAt, timeframe) {
   if (timeframe === "all") return true;
+  if (timeframe === "24h") {
+    return Date.now() - createdAt <= 24 * 60 * 60 * 1000;
+  }
   const now = new Date();
   const d = new Date(createdAt);
-  if (timeframe === "today") {
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  }
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
@@ -1324,25 +1352,101 @@ function groupByDay(drinks) {
   return byDay;
 }
 
-function getWeeklyPeakSeries(drinks, weeksCount, profile) {
-  const currentMonday = mondayOfWeek(Date.now());
-  const series = [];
-  for (let i = weeksCount - 1; i >= 0; i--) {
-    const weekStart = new Date(currentMonday);
-    weekStart.setDate(weekStart.getDate() - i * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+const CHART_GRANULARITY_CONFIG = {
+  day: { unit: "day", count: 14 },
+  week: { unit: "week", count: 12 },
+  month: { unit: "month", count: 12 },
+  year: { unit: "year", count: 6 }
+};
 
-    const weekDrinks = drinks.filter(d => d.createdAt >= weekStart.getTime() && d.createdAt < weekEnd.getTime());
-    const byDay = groupByDay(weekDrinks);
-    let weekPeak = 0;
+function addUnits(date, unit, n) {
+  const d = new Date(date);
+  if (unit === "day") d.setDate(d.getDate() + n);
+  else if (unit === "week") d.setDate(d.getDate() + n * 7);
+  else if (unit === "month") d.setMonth(d.getMonth() + n);
+  else if (unit === "year") d.setFullYear(d.getFullYear() + n);
+  return d;
+}
+
+function unitStart(date, unit) {
+  if (unit === "day") return startOfDay(date);
+  if (unit === "week") return mondayOfWeek(date);
+  if (unit === "month") return new Date(date.getFullYear(), date.getMonth(), 1);
+  return new Date(date.getFullYear(), 0, 1);
+}
+
+function getBacSeries(drinks, granularity, offset, profile) {
+  const { count } = CHART_GRANULARITY_CONFIG[granularity];
+
+  if (granularity === "day") {
+    // Rollierende 24h-Fenster statt Kalendertage, damit eine Bar-Nacht (z.B. 21 - 3 Uhr) nicht an Mitternacht zerschnitten wird.
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const latestBucketEnd = Date.now() + offset * count * DAY_MS;
+    const series = [];
+    for (let i = count - 1; i >= 0; i--) {
+      const bucketEndMs = latestBucketEnd - i * DAY_MS;
+      const bucketStartMs = bucketEndMs - DAY_MS;
+      const bucketDrinks = drinks.filter(d => d.createdAt >= bucketStartMs && d.createdAt < bucketEndMs);
+      const peak = calculatePeakBacForDay(bucketDrinks, profile);
+      series.push({ start: new Date(bucketStartMs), end: new Date(bucketEndMs), peak });
+    }
+    return series;
+  }
+
+  const { unit } = CHART_GRANULARITY_CONFIG[granularity];
+  const currentBucketStart = unitStart(new Date(), unit);
+  const latestBucketStart = addUnits(currentBucketStart, unit, offset * count);
+
+  const series = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const bucketStart = addUnits(latestBucketStart, unit, -i);
+    const bucketEnd = addUnits(bucketStart, unit, 1);
+    const bucketDrinks = drinks.filter(d => d.createdAt >= bucketStart.getTime() && d.createdAt < bucketEnd.getTime());
+    const byDay = groupByDay(bucketDrinks);
+    let peak = 0;
     Object.values(byDay).forEach(dayDrinks => {
-      const peak = calculatePeakBacForDay(dayDrinks, profile);
-      if (peak > weekPeak) weekPeak = peak;
+      const p = calculatePeakBacForDay(dayDrinks, profile);
+      if (p > peak) peak = p;
     });
-    series.push({ weekStart, peak: weekPeak });
+    series.push({ start: bucketStart, end: bucketEnd, peak });
   }
   return series;
+}
+
+function buildChartLabels(series, granularity) {
+  const n = series.length;
+  const maxLabels = 6;
+  const step = Math.max(1, Math.ceil(n / maxLabels));
+  const labels = [];
+  series.forEach((s, i) => {
+    if (i % step !== 0 && i !== n - 1) return;
+    let text;
+    if (granularity === "month") {
+      text = s.start.toLocaleDateString("de-DE", { month: "short" }).replace(".", "");
+    } else if (granularity === "year") {
+      text = String(s.start.getFullYear());
+    } else {
+      text = s.start.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+    }
+    labels.push({ index: i, label: text });
+  });
+  return labels;
+}
+
+function formatChartRangeLabel(series, granularity) {
+  const first = series[0].start;
+  const last = new Date(series[series.length - 1].end.getTime() - 1);
+  const sameYear = first.getFullYear() === last.getFullYear();
+
+  if (granularity === "year") {
+    return sameYear ? String(first.getFullYear()) : `${first.getFullYear()} – ${last.getFullYear()}`;
+  }
+  if (granularity === "month") {
+    const fmt = d => d.toLocaleDateString("de-DE", { month: "short" }).replace(".", "");
+    return sameYear ? `${fmt(first)} – ${fmt(last)} ${last.getFullYear()}` : `${fmt(first)} ${first.getFullYear()} – ${fmt(last)} ${last.getFullYear()}`;
+  }
+  const fmt = d => d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+  return sameYear ? `${fmt(first)} – ${fmt(last)} ${last.getFullYear()}` : `${fmt(first)} ${first.getFullYear()} – ${fmt(last)} ${last.getFullYear()}`;
 }
 
 function bacLevel(bac) {
@@ -1357,7 +1461,7 @@ function bacColorClass(bac) {
 
 function computeMyLiveBac() {
   if (!state.user) return null;
-  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "today"));
+  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "24h"));
   if (!myDrinksToday.length) return null;
   return calculateBac(myDrinksToday, state.userProfiles[state.user.uid]);
 }
@@ -1374,11 +1478,11 @@ function renderHeaderPromilleBadge() {
 }
 
 function updatePromilleCard() {
-  if (rankingTimeframe !== "today" || !state.user) {
+  if (rankingTimeframe !== "24h" || !state.user) {
     el.promilleCard.hidden = true;
     return;
   }
-  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "today"));
+  const myDrinksToday = state.drinks.filter(d => d.uid === state.user.uid && isInTimeframe(d.createdAt, "24h"));
   if (!myDrinksToday.length) {
     el.promilleCard.hidden = true;
     return;
@@ -1388,7 +1492,7 @@ function updatePromilleCard() {
   el.promilleCard.hidden = false;
 }
 
-function buildPromilleChartHtml(series) {
+function buildPromilleChartHtml(series, granularity) {
   const width = 300;
   const height = 120;
   const peaks = series.map(s => s.peak);
@@ -1423,20 +1527,9 @@ function buildPromilleChartHtml(series) {
 
   const fmt = v => v.toFixed(1).replace(".", ",") + "‰";
 
-  const monthLabels = [];
-  let lastMonth = null;
-  series.forEach((s, i) => {
-    const m = s.weekStart.getMonth();
-    if (m !== lastMonth) {
-      monthLabels.push({
-        index: i,
-        label: s.weekStart.toLocaleDateString("de-DE", { month: "short" }).replace(".", "").toUpperCase()
-      });
-      lastMonth = m;
-    }
-  });
-  const monthsHtml = monthLabels
-    .map(m => `<span class="promille-chart__month" style="left:${n > 1 ? (m.index / (n - 1)) * 100 : 0}%">${m.label}</span>`)
+  const labels = buildChartLabels(series, granularity);
+  const monthsHtml = labels
+    .map(l => `<span class="promille-chart__month" style="left:${n > 1 ? (l.index / (n - 1)) * 100 : 0}%">${l.label}</span>`)
     .join("");
 
   return `<div class="promille-chart">
@@ -1549,6 +1642,15 @@ function renderProfileCalendar(myDrinks) {
   });
 }
 
+function renderProfileChart() {
+  if (!state.user) return;
+  const myDrinks = state.drinks.filter(d => d.uid === state.user.uid);
+  const profile = state.userProfiles[state.user.uid];
+  const series = getBacSeries(myDrinks, profileChartGranularity, profileChartOffset, profile);
+  el.chartRangeLabel.textContent = formatChartRangeLabel(series, profileChartGranularity);
+  el.profileChart.innerHTML = buildPromilleChartHtml(series, profileChartGranularity);
+}
+
 function renderProfileSheet() {
   if (!state.user) return;
   const name = state.user.displayName || state.user.email;
@@ -1559,13 +1661,14 @@ function renderProfileSheet() {
   const profile = state.userProfiles[state.user.uid];
 
   renderProfileWeekStats(myDrinks, profile);
-  el.profileChart.innerHTML = buildPromilleChartHtml(getWeeklyPeakSeries(myDrinks, 12, profile));
+  renderProfileChart();
   renderProfileStreaks(myDrinks);
   renderProfileCalendar(myDrinks);
 }
 
 function openProfileSheet() {
   profileCalendarOffset = 0;
+  profileChartOffset = 0;
   renderProfileSheet();
   el.profileSheet.hidden = false;
 }
@@ -1614,7 +1717,7 @@ function renderRanking() {
     </div>`;
   }).join("");
 
-  if (rankingTimeframe === "today") {
+  if (rankingTimeframe === "24h") {
     const drinksByUid = {};
     drinks.forEach(d => {
       if (!d.uid) return;
@@ -1658,17 +1761,25 @@ function renderRanking() {
 function formatDrinkTimestamp(ts) {
   const d = new Date(ts);
   const time = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-  if (rankingTimeframe === "today") return time;
+  if (rankingTimeframe === "24h") return time;
   const date = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
   return `${date} · ${time}`;
 }
 
 function openPersonDrinksSheet(uid, name) {
+  currentPersonDrinksUid = uid;
+  currentPersonDrinksName = name;
+  renderPersonDrinksSheet();
+  el.personDrinksSheet.hidden = false;
+}
+
+function renderPersonDrinksSheet() {
+  if (!currentPersonDrinksUid) return;
   const personDrinks = state.drinks
-    .filter(d => d.uid === uid && isInTimeframe(d.createdAt, rankingTimeframe))
+    .filter(d => d.uid === currentPersonDrinksUid && isInTimeframe(d.createdAt, rankingTimeframe))
     .sort((a, b) => b.createdAt - a.createdAt);
 
-  el.personDrinksName.textContent = name;
+  el.personDrinksName.textContent = currentPersonDrinksName;
 
   const counts = {};
   personDrinks.forEach(d => {
@@ -1681,6 +1792,7 @@ function openPersonDrinksSheet(uid, name) {
   el.personDrinksList.innerHTML = personDrinks
     .map(d => {
       const type = DRINK_LOOKUP[d.drinkType];
+      const canDelete = state.user && d.uid === state.user.uid;
       return `<div class="person-drinks-row">
         <span class="person-drinks-row__emoji">${type ? type.emoji : "🥤"}</span>
         <div class="person-drinks-row__text">
@@ -1688,15 +1800,29 @@ function openPersonDrinksSheet(uid, name) {
           <p class="person-drinks-row__venue">${d.venueName || ""}</p>
         </div>
         <span class="person-drinks-row__time">${formatDrinkTimestamp(d.createdAt)}</span>
+        ${canDelete ? `<button type="button" class="person-drinks-row__delete" data-id="${d.id}" aria-label="Getränk entfernen">✕</button>` : ""}
       </div>`;
     })
     .join("");
 
-  el.personDrinksSheet.hidden = false;
+  el.personDrinksList.querySelectorAll(".person-drinks-row__delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Getränk wirklich entfernen?")) return;
+      btn.disabled = true;
+      try {
+        await deleteDrink(btn.dataset.id);
+      } catch (err) {
+        alert("Fehler beim Entfernen. Bitte erneut versuchen.");
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 function closePersonDrinksSheet() {
   el.personDrinksSheet.hidden = true;
+  currentPersonDrinksUid = null;
+  currentPersonDrinksName = null;
 }
 
 function initEvents() {
@@ -1780,6 +1906,22 @@ function initEvents() {
   });
   el.profileSheet.addEventListener("click", e => {
     if (e.target === el.profileSheet) closeProfileSheet();
+  });
+  el.chartGranularity.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      profileChartGranularity = btn.dataset.granularity;
+      profileChartOffset = 0;
+      el.chartGranularity.querySelectorAll("button").forEach(b => b.classList.toggle("chip--active", b === btn));
+      renderProfileChart();
+    });
+  });
+  el.chartPrev.addEventListener("click", () => {
+    profileChartOffset -= 1;
+    renderProfileChart();
+  });
+  el.chartNext.addEventListener("click", () => {
+    profileChartOffset += 1;
+    renderProfileChart();
   });
   el.profileSettingsBtn.addEventListener("click", () => {
     closeProfileSheet();
@@ -2027,6 +2169,7 @@ function init() {
     state.drinks = drinks;
     if (!el.rankingSheet.hidden) renderRanking();
     if (!el.profileSheet.hidden) renderProfileSheet();
+    if (!el.personDrinksSheet.hidden) renderPersonDrinksSheet();
     renderHeaderPromilleBadge();
   });
 
