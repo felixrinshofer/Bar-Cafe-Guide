@@ -372,7 +372,7 @@ function renderVenueCard(v) {
     ${thumbHtml}
     <div class="venue-card__main">
       <div class="venue-card__top">
-        <div>
+        <div class="venue-card__titles">
           <h3 class="venue-card__name">${v.name}</h3>
           <p class="venue-card__meta">${metaParts.join(" · ")}</p>
         </div>
@@ -1463,8 +1463,9 @@ function buildChartLabels(series, granularity) {
   return labels;
 }
 
-function formatChartRangeLabel(series, granularity) {
+function formatChartRangeLabel(series, granularity, offset) {
   if (granularity === "day") {
+    if (offset === 0) return "Letzte 24h";
     const fmt = d => `${d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
     return `${fmt(series[0].start)} – ${fmt(series[series.length - 1].start)}`;
   }
@@ -1684,7 +1685,7 @@ function renderProfileChart() {
   const myDrinks = state.drinks.filter(d => d.uid === state.user.uid);
   const profile = state.userProfiles[state.user.uid];
   const series = getBacSeries(myDrinks, profileChartGranularity, profileChartOffset, profile);
-  el.chartRangeLabel.textContent = formatChartRangeLabel(series, profileChartGranularity);
+  el.chartRangeLabel.textContent = formatChartRangeLabel(series, profileChartGranularity, profileChartOffset);
   el.profileChart.innerHTML = buildPromilleChartHtml(series, profileChartGranularity);
 }
 
