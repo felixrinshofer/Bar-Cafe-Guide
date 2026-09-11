@@ -1,4 +1,4 @@
-const CACHE_NAME = "muc-bars-v87";
+const CACHE_NAME = "muc-bars-v88";
 const APP_SHELL = [
   "./",
   "./index.html",

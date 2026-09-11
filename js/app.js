@@ -92,7 +92,7 @@ const MAX_DOC_BYTES = 900_000; // Firestore-Limit ist 1 MiB pro Dokument, Puffer
 
 const state = {
   venues: [],
-  filters: loadFilters() || structuredClone(emptyFilters),
+  filters: { ...structuredClone(emptyFilters), ...(loadFilters() || {}) },
   favorites: loadFavorites(),
   userLocation: null,
   distances: {},
@@ -146,6 +146,7 @@ const el = {
   categoryChips: document.getElementById("category-chips"),
   priceChips: document.getElementById("price-chips"),
   vibeChips: document.getElementById("vibe-chips"),
+  creatorChips: document.getElementById("creator-chips"),
   sortSelect: document.getElementById("sort-select"),
   locateBtn: document.getElementById("locate-btn"),
   mapBtn: document.getElementById("map-btn"),
@@ -319,6 +320,14 @@ function renderFilterChips() {
   renderChips(el.categoryChips, options.categories, state.filters.categories, null, persistAndRender);
   renderChips(el.priceChips, [1, 2, 3], state.filters.priceRanges, p => PRICE_LABELS[p], persistAndRender);
   renderChips(el.vibeChips, options.vibes, state.filters.vibes, null, persistAndRender);
+
+  const creatorIds = [...new Set(state.venues.map(v => v.createdBy).filter(Boolean))];
+  const creatorNames = Object.fromEntries(
+    creatorIds.map(uid => [uid, state.userProfiles[uid]?.displayName || knownDisplayNames[uid] || "Unbekannt"])
+  );
+  creatorIds.sort((a, b) => creatorNames[a].localeCompare(creatorNames[b], "de"));
+  renderChips(el.creatorChips, creatorIds, state.filters.createdBy, uid => creatorNames[uid], persistAndRender);
+
   el.sortSelect.value = state.filters.sortBy;
   el.search.value = state.filters.search;
 
@@ -326,7 +335,8 @@ function renderFilterChips() {
     state.filters.types.length +
     state.filters.categories.length +
     state.filters.priceRanges.length +
-    state.filters.vibes.length;
+    state.filters.vibes.length +
+    (state.filters.createdBy || []).length;
   el.filterToggle.textContent = activeCount > 0 ? `Filter (${activeCount}) ▾` : "Filter ▾";
 }
 
@@ -609,6 +619,11 @@ function openDetail(id) {
     { label: "Kategorie", value: v.category || "—", muted: !v.category },
     { label: "Stadtteil", value: v.neighborhood || "—", muted: !v.neighborhood }
   ];
+
+  if (v.createdBy) {
+    const creatorName = state.userProfiles[v.createdBy]?.displayName || v.createdByName || "Unbekannt";
+    tiles.push({ label: "Hinzugefügt von", value: creatorName });
+  }
 
   let tilesHtml = tiles
     .map(
@@ -1013,7 +1028,9 @@ async function handleFormSubmit(e) {
     lng: formState.location ? formState.location.lng : null,
     description: el.fDescription.value.trim(),
     photos: [...formState.photos],
-    createdAt: existing ? existing.createdAt : Date.now()
+    createdAt: existing ? existing.createdAt : Date.now(),
+    createdBy: existing ? existing.createdBy || null : state.user?.uid || null,
+    createdByName: existing ? existing.createdByName || null : state.user?.displayName || state.user?.email || null
   };
 
   const estimatedSize = new Blob([JSON.stringify(venue)]).size;

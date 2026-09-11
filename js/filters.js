@@ -10,6 +10,7 @@ export const emptyFilters = {
   categories: [],
   priceRanges: [],
   vibes: [],
+  createdBy: [],
   search: "",
   favoritesOnly: false,
   sortBy: "name" // 'name' | 'distance' | 'price' | 'neighborhood' | 'rating'
@@ -22,6 +23,7 @@ export function applyFilters(venues, filters, distances, favorites, ratingStats)
     if (filters.categories.length && !filters.categories.includes(v.category)) return false;
     if (filters.priceRanges.length && !filters.priceRanges.includes(v.priceRange)) return false;
     if (filters.vibes.length && !filters.vibes.every(vibe => v.vibes.includes(vibe))) return false;
+    if ((filters.createdBy || []).length && !filters.createdBy.includes(v.createdBy)) return false;
     if (filters.search) {
       const q = filters.search.toLowerCase();
       const haystack = `${v.name} ${v.category} ${v.neighborhood}`.toLowerCase();
