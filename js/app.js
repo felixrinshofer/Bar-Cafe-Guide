@@ -571,6 +571,24 @@ function renderDetailRating(venue) {
   });
 }
 
+function openSheet(backdrop) {
+  backdrop.hidden = false;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => backdrop.classList.add("sheet-backdrop--open"));
+  });
+}
+
+function closeSheet(backdrop, { immediate = false } = {}) {
+  backdrop.classList.remove("sheet-backdrop--open");
+  if (immediate) {
+    backdrop.hidden = true;
+    return;
+  }
+  setTimeout(() => {
+    backdrop.hidden = true;
+  }, 320);
+}
+
 function openDetail(id) {
   const v = state.venues.find(x => x.id === id);
   if (!v) return;
@@ -657,12 +675,12 @@ function openDetail(id) {
     }
   };
 
-  el.detailSheet.hidden = false;
+  openSheet(el.detailSheet);
   el.detailSheetInner.scrollTop = 0;
 }
 
-function closeDetail() {
-  el.detailSheet.hidden = true;
+function closeDetail(opts) {
+  closeSheet(el.detailSheet, opts);
   el.detailPhotos.innerHTML = "";
   currentDetailVenueId = null;
 }
@@ -815,7 +833,7 @@ function openForm(venue) {
   el.placeSearchStatus.textContent = "";
   el.placeSearchResults.innerHTML = "";
 
-  el.formSheet.hidden = false;
+  openSheet(el.formSheet);
   el.formSheetInner.scrollTop = 0;
 }
 
@@ -833,8 +851,8 @@ function renderPriceSegmented() {
   });
 }
 
-function closeForm() {
-  el.formSheet.hidden = true;
+function closeForm(opts) {
+  closeSheet(el.formSheet, opts);
   el.fPhotos.innerHTML = "";
   el.fPhotoUrlStatus.hidden = true;
   el.form.reset();
@@ -1131,11 +1149,11 @@ async function handleAccountPhotoChange(e) {
 
 function openAccountSheet() {
   if (state.user) populateProfileEditFields();
-  el.accountSheet.hidden = false;
+  openSheet(el.accountSheet);
 }
 
-function closeAccountSheet() {
-  el.accountSheet.hidden = true;
+function closeAccountSheet(opts) {
+  closeSheet(el.accountSheet, opts);
   el.authError.hidden = true;
   el.profileEditStatus.hidden = true;
   el.authForm.reset();
@@ -1209,11 +1227,11 @@ function openDrinkSheet() {
   el.drinkStatus.hidden = true;
   el.drinkVenueSearch.value = "";
   renderDrinkTypeGrid();
-  el.drinkSheet.hidden = false;
+  openSheet(el.drinkSheet);
 }
 
-function closeDrinkSheet() {
-  el.drinkSheet.hidden = true;
+function closeDrinkSheet(opts) {
+  closeSheet(el.drinkSheet, opts);
 }
 
 function renderDrinkTypeGrid() {
@@ -1319,11 +1337,11 @@ function setRankingTimeframe(timeframe) {
 
 function openRankingSheet() {
   renderRanking();
-  el.rankingSheet.hidden = false;
+  openSheet(el.rankingSheet);
 }
 
-function closeRankingSheet() {
-  el.rankingSheet.hidden = true;
+function closeRankingSheet(opts) {
+  closeSheet(el.rankingSheet, opts);
 }
 
 function calculateBac(drinks, profile, asOf = Date.now()) {
@@ -1824,11 +1842,11 @@ function openProfileSheet() {
   profileCalendarOffset = 0;
   profileChartOffset = 0;
   renderProfileSheet();
-  el.profileSheet.hidden = false;
+  openSheet(el.profileSheet);
 }
 
-function closeProfileSheet() {
-  el.profileSheet.hidden = true;
+function closeProfileSheet(opts) {
+  closeSheet(el.profileSheet, opts);
 }
 
 function renderRanking() {
@@ -1924,7 +1942,7 @@ function openPersonDrinksSheet(uid, name) {
   currentPersonDrinksUid = uid;
   currentPersonDrinksName = name;
   renderPersonDrinksSheet();
-  el.personDrinksSheet.hidden = false;
+  openSheet(el.personDrinksSheet);
 }
 
 function renderPersonDrinksSheet() {
@@ -1973,8 +1991,8 @@ function renderPersonDrinksSheet() {
   });
 }
 
-function closePersonDrinksSheet() {
-  el.personDrinksSheet.hidden = true;
+function closePersonDrinksSheet(opts) {
+  closeSheet(el.personDrinksSheet, opts);
   currentPersonDrinksUid = null;
   currentPersonDrinksName = null;
 }
@@ -2292,12 +2310,16 @@ function initSheetDragToDismiss() {
       if (dragY > threshold) {
         sheet.style.transform = "translateY(100%)";
         setTimeout(() => {
-          closeFn();
+          closeFn({ immediate: true });
           sheet.style.transition = "";
           sheet.style.transform = "";
         }, 320);
       } else {
         sheet.style.transform = "translateY(0)";
+        setTimeout(() => {
+          sheet.style.transition = "";
+          sheet.style.transform = "";
+        }, 350);
       }
       dragY = 0;
     }
