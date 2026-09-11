@@ -2311,12 +2311,51 @@ function initSheetDragToDismiss() {
   });
 }
 
+function findScrollParent(el) {
+  while (el && el !== document.body) {
+    const style = getComputedStyle(el);
+    if (/(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
+
+function initPullToRefreshBlock() {
+  // overscroll-behavior allein reicht auf manchen iOS-Versionen/Standalone-PWAs nicht aus,
+  // um das native Pull-to-refresh zu unterdrücken - deshalb zusätzlich hart per Touch-Handler blocken.
+  let startY = 0;
+  let blockNext = false;
+
+  document.addEventListener(
+    "touchstart",
+    e => {
+      if (e.touches.length !== 1) return;
+      startY = e.touches[0].clientY;
+      const scrollParent = findScrollParent(e.target);
+      const scrollTop = scrollParent ? scrollParent.scrollTop : window.scrollY;
+      blockNext = scrollTop <= 0;
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    "touchmove",
+    e => {
+      if (!blockNext) return;
+      blockNext = false;
+      if (e.touches[0].clientY - startY > 0 && e.cancelable) e.preventDefault();
+    },
+    { passive: false }
+  );
+}
+
 function init() {
   initEvents();
   initHeaderShrink();
   initTypeOverviewSnap();
   initScrollLock();
   initSheetDragToDismiss();
+  initPullToRefreshBlock();
   onAuthChange(renderAccountUI);
 
   subscribeDrinks(drinks => {
