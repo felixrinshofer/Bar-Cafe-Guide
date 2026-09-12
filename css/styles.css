@@ -552,29 +552,20 @@ main {
   flex: none;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  touch-action: pan-y;
 }
 
-.venue-card__thumb-scroll {
+.venue-card__thumb-track {
   display: flex;
-  width: 100%;
   height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
-  scrollbar-width: none;
+  width: fit-content;
+  will-change: transform;
 }
 
-.venue-card__thumb-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.venue-card__thumb-scroll .venue-card__thumb {
+.venue-card__thumb-track .venue-card__thumb {
   width: 96px;
   height: 96px;
   flex: none;
-  scroll-snap-align: start;
   border-radius: 0;
 }
 

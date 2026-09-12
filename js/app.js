@@ -378,6 +378,70 @@ function computeDistances() {
   return distances;
 }
 
+function initThumbCarousel(card, count) {
+  const wrap = card.querySelector(".venue-card__thumb-wrap");
+  const track = card.querySelector(".venue-card__thumb-track");
+  const dots = card.querySelectorAll(".venue-card__thumb-dot");
+
+  let index = 0;
+  let startX = 0;
+  let startY = 0;
+  let baseX = 0;
+  let dragging = false;
+  let axisLocked = null;
+
+  function goTo(i, animate) {
+    index = Math.max(0, Math.min(count - 1, i));
+    track.style.transition = animate ? "transform 260ms var(--ease-liquid)" : "none";
+    track.style.transform = `translateX(${-index * wrap.clientWidth}px)`;
+    dots.forEach((d, di) => d.classList.toggle("venue-card__thumb-dot--active", di === index));
+  }
+
+  wrap.addEventListener(
+    "touchstart",
+    e => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      baseX = -index * wrap.clientWidth;
+      dragging = true;
+      axisLocked = null;
+      track.style.transition = "none";
+    },
+    { passive: true }
+  );
+
+  wrap.addEventListener(
+    "touchmove",
+    e => {
+      if (!dragging) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (!axisLocked) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        axisLocked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (axisLocked === "y") return;
+      if (e.cancelable) e.preventDefault();
+      track.style.transform = `translateX(${baseX + dx}px)`;
+    },
+    { passive: false }
+  );
+
+  wrap.addEventListener("touchend", e => {
+    if (!dragging) return;
+    dragging = false;
+    if (axisLocked !== "x") return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const threshold = wrap.clientWidth * 0.2;
+    if (dx < -threshold) goTo(index + 1, true);
+    else if (dx > threshold) goTo(index - 1, true);
+    else goTo(index, true);
+  });
+
+  goTo(0, false);
+}
+
 function renderVenueCard(v) {
   const card = document.createElement("article");
   card.className = "venue-card";
@@ -392,7 +456,7 @@ function renderVenueCard(v) {
   if (photos.length > 1) {
     thumbHtml = `
       <div class="venue-card__thumb-wrap">
-        <div class="venue-card__thumb-scroll">
+        <div class="venue-card__thumb-track">
           ${photos.map(p => `<img class="venue-card__thumb" src="${p}" alt="" />`).join("")}
         </div>
         <div class="venue-card__thumb-dots">
@@ -428,13 +492,8 @@ function renderVenueCard(v) {
     </div>
   `;
 
-  const thumbScroll = card.querySelector(".venue-card__thumb-scroll");
-  if (thumbScroll) {
-    const dots = card.querySelectorAll(".venue-card__thumb-dot");
-    thumbScroll.addEventListener("scroll", () => {
-      const index = Math.round(thumbScroll.scrollLeft / thumbScroll.clientWidth);
-      dots.forEach((d, i) => d.classList.toggle("venue-card__thumb-dot--active", i === index));
-    });
+  if (photos.length > 1) {
+    initThumbCarousel(card, photos.length);
   }
 
   card.querySelector(".fav-btn").addEventListener("click", e => {
