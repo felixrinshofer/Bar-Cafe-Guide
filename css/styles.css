@@ -159,13 +159,22 @@ header {
   width: calc(64px - var(--shrink, 0) * 32px);
   height: calc(64px - var(--shrink, 0) * 32px);
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  color: var(--text);
+  font-size: calc(1.2rem - var(--shrink, 0) * 0.5rem);
+  box-shadow: var(--shadow-float);
+}
+
+.header-icon-btn--active {
+  border-color: transparent;
   background: linear-gradient(155deg, #1a6fd6, var(--accent));
   color: white;
-  font-size: calc(1.2rem - var(--shrink, 0) * 0.5rem);
   box-shadow: 0 4px 14px var(--accent-glow);
 }
 

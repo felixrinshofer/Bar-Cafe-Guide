@@ -5,6 +5,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  deleteField,
   onSnapshot,
   enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
@@ -122,6 +123,10 @@ export function subscribeUserProfiles(onChange, onError) {
 
 export async function updateUserProfile(uid, data) {
   await setDoc(doc(usersCol, uid), data, { merge: true });
+}
+
+export async function clearUserProfileLocation(uid) {
+  await setDoc(doc(usersCol, uid), { lat: deleteField(), lng: deleteField(), locationUpdatedAt: deleteField() }, { merge: true });
 }
 
 export function subscribeRatings(onChange, onError) {

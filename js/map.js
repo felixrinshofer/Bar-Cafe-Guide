@@ -165,6 +165,13 @@ export function setUserLocation(lat, lng, photoUrl) {
   userMarker = new Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
 }
 
+export function clearUserLocation() {
+  if (userMarker) {
+    userMarker.remove();
+    userMarker = null;
+  }
+}
+
 export function renderPeopleMarkers(people) {
   if (!map) return;
   peopleMarkers.forEach(m => m.remove());

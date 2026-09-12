@@ -1,8 +1,8 @@
 import { suggestedCategories, suggestedVibes } from "./data.js";
 import { haversineDistanceKm, formatDistance, getCurrentPosition } from "./geo.js";
-import { loadFilters, saveFilters, loadFavorites, saveFavorites } from "./store.js";
+import { loadFilters, saveFilters, loadFavorites, saveFavorites, loadLocationEnabled, saveLocationEnabled } from "./store.js";
 import { emptyFilters, applyFilters, deriveOptions } from "./filters.js";
-import { initMap, renderVenueMarkers, setUserLocation, renderPeopleMarkers, panTo, invalidateMapSize } from "./map.js";
+import { initMap, renderVenueMarkers, setUserLocation, clearUserLocation, renderPeopleMarkers, panTo, invalidateMapSize } from "./map.js";
 import {
   subscribeVenues,
   putVenue,
@@ -17,6 +17,7 @@ import {
   deleteDrink,
   subscribeUserProfiles,
   updateUserProfile,
+  clearUserProfileLocation,
   subscribeRatings,
   rateVenue
 } from "./firebase.js";
@@ -95,6 +96,7 @@ const state = {
   filters: { ...structuredClone(emptyFilters), ...(loadFilters() || {}) },
   favorites: loadFavorites(),
   userLocation: null,
+  locationEnabled: loadLocationEnabled(),
   distances: {},
   view: "list",
   loaded: false,
@@ -495,12 +497,22 @@ function persistAndRender() {
   render();
 }
 
-async function handleLocate() {
+async function toggleLocation() {
+  if (state.locationEnabled) {
+    disableLocation();
+  } else {
+    await enableLocation();
+  }
+}
+
+async function enableLocation() {
   el.locateBtn.disabled = true;
   el.locateBtn.title = "Suche…";
   try {
     const pos = await getCurrentPosition();
     state.userLocation = pos;
+    state.locationEnabled = true;
+    saveLocationEnabled(true);
     state.distances = computeDistances();
     state.filters.sortBy = "distance";
     if (mapInitialized) setUserLocation(pos.lat, pos.lng, state.userProfiles[state.user?.uid]?.photoUrl);
@@ -511,13 +523,32 @@ async function handleLocate() {
       );
     }
     persistAndRender();
-    el.locateBtn.title = "Standort aktualisieren";
+    el.locateBtn.classList.add("header-icon-btn--active");
+    el.locateBtn.title = "Standort ausschalten";
   } catch (err) {
+    state.locationEnabled = false;
+    saveLocationEnabled(false);
+    el.locateBtn.classList.remove("header-icon-btn--active");
     el.locateBtn.title = "Standort nicht verfügbar";
     console.warn(err);
   } finally {
     el.locateBtn.disabled = false;
   }
+}
+
+function disableLocation() {
+  state.locationEnabled = false;
+  saveLocationEnabled(false);
+  state.userLocation = null;
+  state.distances = {};
+  if (state.filters.sortBy === "distance") state.filters.sortBy = "name";
+  if (mapInitialized) clearUserLocation();
+  if (state.user) {
+    clearUserProfileLocation(state.user.uid).catch(err => console.warn("Standort konnte nicht entfernt werden", err));
+  }
+  persistAndRender();
+  el.locateBtn.classList.remove("header-icon-btn--active");
+  el.locateBtn.title = "In meiner Nähe";
 }
 
 function renderPeopleOnMap() {
@@ -2058,7 +2089,7 @@ function initEvents() {
     state.filters.sortBy = e.target.value;
     persistAndRender();
   });
-  el.locateBtn.addEventListener("click", handleLocate);
+  el.locateBtn.addEventListener("click", toggleLocation);
   el.resetBtn.addEventListener("click", () => {
     state.filters = structuredClone(emptyFilters);
     persistAndRender();
@@ -2440,6 +2471,11 @@ function init() {
   initMapDragToDismiss();
   initPullToRefreshBlock();
   onAuthChange(renderAccountUI);
+
+  if (state.locationEnabled) {
+    el.locateBtn.classList.add("header-icon-btn--active");
+    enableLocation();
+  }
 
   subscribeDrinks(drinks => {
     state.drinks = drinks;

@@ -1,5 +1,6 @@
 const FILTER_KEY = "muc-bars:filters";
 const FAVORITES_KEY = "muc-bars:favorites";
+const LOCATION_ENABLED_KEY = "muc-bars:location-enabled";
 
 export function loadFilters() {
   try {
@@ -30,6 +31,22 @@ export function loadFavorites() {
 export function saveFavorites(favoriteSet) {
   try {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteSet]));
+  } catch {
+    /* ignorieren */
+  }
+}
+
+export function loadLocationEnabled() {
+  try {
+    return localStorage.getItem(LOCATION_ENABLED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function saveLocationEnabled(enabled) {
+  try {
+    localStorage.setItem(LOCATION_ENABLED_KEY, String(enabled));
   } catch {
     /* ignorieren */
   }
