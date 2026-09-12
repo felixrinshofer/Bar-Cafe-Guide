@@ -141,7 +141,6 @@ const el = {
   typeOverview: document.getElementById("type-overview"),
   mapView: document.getElementById("map-view"),
   mapDragHandle: document.getElementById("map-drag-handle"),
-  mapTypeOverview: document.getElementById("map-type-overview"),
   emptyGlobal: document.getElementById("empty-state-global"),
   search: document.getElementById("search-input"),
   typeChips: document.getElementById("type-chips"),
@@ -418,8 +417,9 @@ function renderVenueCard(v) {
   return card;
 }
 
-function buildTypeOverviewInto(container) {
-  container.innerHTML = "";
+function renderTypeOverview() {
+  el.typeOverview.innerHTML = "";
+  if (state.venues.length === 0) return;
 
   const favActive = state.filters.favoritesOnly;
   const favTile = document.createElement("button");
@@ -433,7 +433,7 @@ function buildTypeOverviewInto(container) {
     state.filters.favoritesOnly = !state.filters.favoritesOnly;
     persistAndRender();
   });
-  container.appendChild(favTile);
+  el.typeOverview.appendChild(favTile);
 
   TYPE_ORDER.forEach(type => {
     const active = state.filters.types.includes(type);
@@ -448,19 +448,8 @@ function buildTypeOverviewInto(container) {
       toggleInArray(state.filters.types, type);
       persistAndRender();
     });
-    container.appendChild(tile);
+    el.typeOverview.appendChild(tile);
   });
-}
-
-function renderTypeOverview() {
-  if (state.venues.length === 0) {
-    el.typeOverview.innerHTML = "";
-    el.mapTypeOverview.innerHTML = "";
-    return;
-  }
-  if (state.view === "list") buildTypeOverviewInto(el.typeOverview);
-  else el.typeOverview.innerHTML = "";
-  buildTypeOverviewInto(el.mapTypeOverview);
 }
 
 function render() {
