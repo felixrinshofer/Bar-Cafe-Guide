@@ -387,10 +387,24 @@ function renderVenueCard(v) {
   const dist = state.distances[v.id];
   const ratingStats = state.ratingStats[v.id];
 
-  const thumbHtml =
-    v.photos && v.photos.length
-      ? `<img class="venue-card__thumb" src="${v.photos[0]}" alt="" />`
-      : `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
+  const photos = v.photos || [];
+  let thumbHtml;
+  if (photos.length > 1) {
+    thumbHtml = `
+      <div class="venue-card__thumb-wrap">
+        <div class="venue-card__thumb-scroll">
+          ${photos.map(p => `<img class="venue-card__thumb" src="${p}" alt="" />`).join("")}
+        </div>
+        <div class="venue-card__thumb-dots">
+          ${photos.map((_, i) => `<span class="venue-card__thumb-dot${i === 0 ? " venue-card__thumb-dot--active" : ""}"></span>`).join("")}
+        </div>
+      </div>
+    `;
+  } else if (photos.length === 1) {
+    thumbHtml = `<img class="venue-card__thumb" src="${photos[0]}" alt="" />`;
+  } else {
+    thumbHtml = `<div class="venue-card__thumb venue-card__thumb--placeholder venue-card__thumb--${v.type}">${TYPE_EMOJI[v.type] || "📍"}</div>`;
+  }
 
   const metaParts = [TYPE_LABELS[v.type], v.category || "—", PRICE_LABELS[v.priceRange]];
   if (ratingStats) metaParts.push(`⭐ ${ratingStats.avg.toFixed(1).replace(".", ",")} (${ratingStats.count})`);
@@ -413,6 +427,15 @@ function renderVenueCard(v) {
       </div>
     </div>
   `;
+
+  const thumbScroll = card.querySelector(".venue-card__thumb-scroll");
+  if (thumbScroll) {
+    const dots = card.querySelectorAll(".venue-card__thumb-dot");
+    thumbScroll.addEventListener("scroll", () => {
+      const index = Math.round(thumbScroll.scrollLeft / thumbScroll.clientWidth);
+      dots.forEach((d, i) => d.classList.toggle("venue-card__thumb-dot--active", i === index));
+    });
+  }
 
   card.querySelector(".fav-btn").addEventListener("click", e => {
     e.stopPropagation();
