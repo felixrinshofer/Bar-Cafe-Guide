@@ -2479,6 +2479,7 @@ function findScrollParent(el) {
 function initPullToRefreshBlock() {
   // overscroll-behavior allein reicht auf manchen iOS-Versionen/Standalone-PWAs nicht aus,
   // um das native Pull-to-refresh zu unterdrücken - deshalb zusätzlich hart per Touch-Handler blocken.
+  let startX = 0;
   let startY = 0;
   let blockNext = false;
 
@@ -2486,6 +2487,7 @@ function initPullToRefreshBlock() {
     "touchstart",
     e => {
       if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       const scrollParent = findScrollParent(e.target);
       const scrollTop = scrollParent ? scrollParent.scrollTop : window.scrollY;
@@ -2499,7 +2501,9 @@ function initPullToRefreshBlock() {
     e => {
       if (!blockNext) return;
       blockNext = false;
-      if (e.touches[0].clientY - startY > 0 && e.cancelable) e.preventDefault();
+      const deltaX = e.touches[0].clientX - startX;
+      const deltaY = e.touches[0].clientY - startY;
+      if (deltaY > 0 && deltaY > Math.abs(deltaX) && e.cancelable) e.preventDefault();
     },
     { passive: false }
   );
