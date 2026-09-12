@@ -146,6 +146,10 @@ const el = {
   emptyGlobalTitle: document.getElementById("empty-state-title"),
   emptyGlobalSubtitle: document.getElementById("empty-state-subtitle"),
   search: document.getElementById("search-input"),
+  searchToggle: document.getElementById("search-toggle"),
+  searchClose: document.getElementById("search-close"),
+  filterRowPills: document.getElementById("filter-row-pills"),
+  filterRowSearch: document.getElementById("filter-row-search"),
   typeChips: document.getElementById("type-chips"),
   categoryChips: document.getElementById("category-chips"),
   priceChips: document.getElementById("price-chips"),
@@ -333,6 +337,7 @@ function renderFilterChips() {
 
   el.sortSelect.value = state.filters.sortBy;
   el.search.value = state.filters.search;
+  el.searchToggle.classList.toggle("filter-icon-pill--active", !!state.filters.search);
 
   const activeCount =
     state.filters.types.length +
@@ -2029,6 +2034,15 @@ function initEvents() {
   el.search.addEventListener("input", e => {
     state.filters.search = e.target.value;
     persistAndRender();
+  });
+  el.searchToggle.addEventListener("click", () => {
+    el.filterRowPills.hidden = true;
+    el.filterRowSearch.hidden = false;
+    el.search.focus();
+  });
+  el.searchClose.addEventListener("click", () => {
+    el.filterRowSearch.hidden = true;
+    el.filterRowPills.hidden = false;
   });
   el.sortSelect.addEventListener("change", e => {
     state.filters.sortBy = e.target.value;
