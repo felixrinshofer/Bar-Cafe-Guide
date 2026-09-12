@@ -1882,6 +1882,14 @@ function closeProfileSheet(opts) {
   closeSheet(el.profileSheet, opts);
 }
 
+function rankingAvatarHtml(uid, name) {
+  const photoUrl = state.userProfiles[uid]?.photoUrl;
+  const initial = (name || "?").charAt(0).toUpperCase();
+  return photoUrl
+    ? `<span class="ranking-row__avatar"><img class="avatar-img" src="${photoUrl}" alt="" /></span>`
+    : `<span class="ranking-row__avatar">${initial}</span>`;
+}
+
 function renderRanking() {
   updatePromilleCard();
 
@@ -1938,6 +1946,7 @@ function renderRanking() {
       .map(
         (r, i) => `<div class="ranking-row ranking-row--tile ranking-row--clickable ${bacColorClass(r.bac)}" data-uid="${r.uid}" data-name="${r.name}">
           <span class="ranking-row__rank">${i + 1}</span>
+          ${rankingAvatarHtml(r.uid, r.name)}
           <span class="ranking-row__name">${r.name}</span>
           <span class="ranking-row__count">${r.bac.toFixed(2).replace(".", ",")}‰</span>
         </div>`
@@ -1951,6 +1960,7 @@ function renderRanking() {
       .map(
         (r, i) => `<div class="ranking-row ranking-row--clickable" data-uid="${r.uid}" data-name="${r.name}">
           <span class="ranking-row__rank">${i + 1}</span>
+          ${rankingAvatarHtml(r.uid, r.name)}
           <span class="ranking-row__name">${r.name}</span>
           <span class="ranking-row__count">${r.count}</span>
         </div>`
