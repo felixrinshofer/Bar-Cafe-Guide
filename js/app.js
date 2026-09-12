@@ -139,7 +139,9 @@ const el = {
   headerPromilleValue: document.getElementById("header-promille-value"),
   list: document.getElementById("venue-list"),
   typeOverview: document.getElementById("type-overview"),
-  mapContainer: document.getElementById("map"),
+  mapView: document.getElementById("map-view"),
+  mapDragHandle: document.getElementById("map-drag-handle"),
+  mapTypeOverview: document.getElementById("map-type-overview"),
   emptyGlobal: document.getElementById("empty-state-global"),
   search: document.getElementById("search-input"),
   typeChips: document.getElementById("type-chips"),
@@ -416,9 +418,8 @@ function renderVenueCard(v) {
   return card;
 }
 
-function renderTypeOverview() {
-  el.typeOverview.innerHTML = "";
-  if (state.view !== "list" || state.venues.length === 0) return;
+function buildTypeOverviewInto(container) {
+  container.innerHTML = "";
 
   const favActive = state.filters.favoritesOnly;
   const favTile = document.createElement("button");
@@ -432,7 +433,7 @@ function renderTypeOverview() {
     state.filters.favoritesOnly = !state.filters.favoritesOnly;
     persistAndRender();
   });
-  el.typeOverview.appendChild(favTile);
+  container.appendChild(favTile);
 
   TYPE_ORDER.forEach(type => {
     const active = state.filters.types.includes(type);
@@ -447,8 +448,19 @@ function renderTypeOverview() {
       toggleInArray(state.filters.types, type);
       persistAndRender();
     });
-    el.typeOverview.appendChild(tile);
+    container.appendChild(tile);
   });
+}
+
+function renderTypeOverview() {
+  if (state.venues.length === 0) {
+    el.typeOverview.innerHTML = "";
+    el.mapTypeOverview.innerHTML = "";
+    return;
+  }
+  if (state.view === "list") buildTypeOverviewInto(el.typeOverview);
+  else el.typeOverview.innerHTML = "";
+  buildTypeOverviewInto(el.mapTypeOverview);
 }
 
 function render() {
@@ -522,7 +534,7 @@ function renderPeopleOnMap() {
 
 function setView(view) {
   state.view = view;
-  el.mapContainer.hidden = view !== "map";
+  el.mapView.hidden = view !== "map";
   el.list.hidden = view === "map";
   el.mapBtn.classList.toggle("dock-btn--on", view === "map");
   if (view === "map") {
@@ -2272,6 +2284,60 @@ function initScrollLock() {
   overlays.forEach(o => observer.observe(o, { attributes: true, attributeFilter: ["hidden"] }));
 }
 
+function attachDragToDismiss(handle, target, onDismiss, thresholdRatio = 0.22) {
+  let startY = 0;
+  let dragY = 0;
+  let dragging = false;
+
+  function pointY(e) {
+    return e.touches ? e.touches[0].clientY : e.clientY;
+  }
+
+  function onStart(e) {
+    dragging = true;
+    startY = pointY(e);
+    dragY = 0;
+    target.style.transition = "none";
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const delta = Math.max(0, pointY(e) - startY);
+    dragY = delta;
+    target.style.transform = `translateY(${delta}px)`;
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    target.style.transition = "transform 0.35s var(--ease-liquid)";
+    const threshold = target.offsetHeight * thresholdRatio;
+    if (dragY > threshold) {
+      target.style.transform = "translateY(100%)";
+      setTimeout(() => {
+        onDismiss();
+        target.style.transition = "";
+        target.style.transform = "";
+      }, 320);
+    } else {
+      target.style.transform = "translateY(0)";
+      setTimeout(() => {
+        target.style.transition = "";
+        target.style.transform = "";
+      }, 350);
+    }
+    dragY = 0;
+  }
+
+  handle.addEventListener("touchstart", onStart, { passive: true });
+  handle.addEventListener("touchmove", onMove, { passive: false });
+  handle.addEventListener("touchend", onEnd);
+  handle.addEventListener("mousedown", onStart);
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onEnd);
+}
+
 function initSheetDragToDismiss() {
   const closeFunctions = {
     "detail-sheet": closeDetail,
@@ -2288,59 +2354,13 @@ function initSheetDragToDismiss() {
     const handle = backdrop.querySelector(".sheet__handle");
     const closeFn = closeFunctions[backdrop.id] || (() => (backdrop.hidden = true));
     if (!sheet || !handle) return;
-
-    let startY = 0;
-    let dragY = 0;
-    let dragging = false;
-
-    function pointY(e) {
-      return e.touches ? e.touches[0].clientY : e.clientY;
-    }
-
-    function onStart(e) {
-      dragging = true;
-      startY = pointY(e);
-      dragY = 0;
-      sheet.style.transition = "none";
-    }
-
-    function onMove(e) {
-      if (!dragging) return;
-      const delta = Math.max(0, pointY(e) - startY);
-      dragY = delta;
-      sheet.style.transform = `translateY(${delta}px)`;
-      if (e.cancelable) e.preventDefault();
-    }
-
-    function onEnd() {
-      if (!dragging) return;
-      dragging = false;
-      sheet.style.transition = "transform 0.35s var(--ease-liquid)";
-      const threshold = sheet.offsetHeight * 0.22;
-      if (dragY > threshold) {
-        sheet.style.transform = "translateY(100%)";
-        setTimeout(() => {
-          closeFn({ immediate: true });
-          sheet.style.transition = "";
-          sheet.style.transform = "";
-        }, 320);
-      } else {
-        sheet.style.transform = "translateY(0)";
-        setTimeout(() => {
-          sheet.style.transition = "";
-          sheet.style.transform = "";
-        }, 350);
-      }
-      dragY = 0;
-    }
-
-    handle.addEventListener("touchstart", onStart, { passive: true });
-    handle.addEventListener("touchmove", onMove, { passive: false });
-    handle.addEventListener("touchend", onEnd);
-    handle.addEventListener("mousedown", onStart);
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onEnd);
+    attachDragToDismiss(handle, sheet, () => closeFn({ immediate: true }));
   });
+}
+
+function initMapDragToDismiss() {
+  if (!el.mapDragHandle || !el.mapView) return;
+  attachDragToDismiss(el.mapDragHandle, el.mapView, () => setView("list"), 0.18);
 }
 
 function findScrollParent(el) {
@@ -2387,6 +2407,7 @@ function init() {
   initTypeOverviewSnap();
   initScrollLock();
   initSheetDragToDismiss();
+  initMapDragToDismiss();
   initPullToRefreshBlock();
   onAuthChange(renderAccountUI);
 
