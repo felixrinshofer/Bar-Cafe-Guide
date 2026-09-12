@@ -462,20 +462,40 @@ function renderTypeOverview() {
   });
 }
 
+const SKELETON_CARD_HTML = `
+  <div class="venue-card-skeleton">
+    <div class="venue-card-skeleton__thumb skeleton-block"></div>
+    <div class="venue-card-skeleton__main">
+      <div class="venue-card-skeleton__line venue-card-skeleton__line--title skeleton-block"></div>
+      <div class="venue-card-skeleton__line venue-card-skeleton__line--meta skeleton-block"></div>
+      <div class="venue-card-skeleton__tags">
+        <div class="venue-card-skeleton__tag skeleton-block"></div>
+        <div class="venue-card-skeleton__tag skeleton-block"></div>
+        <div class="venue-card-skeleton__tag skeleton-block"></div>
+      </div>
+    </div>
+  </div>
+`;
+
 function render() {
   const filtered = applyFilters(state.venues, state.filters, state.distances, state.favorites, state.ratingStats);
-  el.emptyGlobal.hidden = !state.loaded || state.venues.length !== 0;
   renderTypeOverview();
 
   el.list.innerHTML = "";
-  if (state.venues.length > 0) {
-    if (filtered.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "empty-state";
-      empty.textContent = "Keine Location passt zu diesen Filtern.";
-      el.list.appendChild(empty);
-    } else {
-      filtered.forEach(v => el.list.appendChild(renderVenueCard(v)));
+  if (!state.loaded) {
+    el.emptyGlobal.hidden = true;
+    el.list.innerHTML = SKELETON_CARD_HTML.repeat(5);
+  } else {
+    el.emptyGlobal.hidden = state.venues.length !== 0;
+    if (state.venues.length > 0) {
+      if (filtered.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        empty.textContent = "Keine Location passt zu diesen Filtern.";
+        el.list.appendChild(empty);
+      } else {
+        filtered.forEach(v => el.list.appendChild(renderVenueCard(v)));
+      }
     }
   }
 
@@ -2476,6 +2496,8 @@ function init() {
     el.locateBtn.classList.add("header-icon-btn--active");
     enableLocation();
   }
+
+  render();
 
   subscribeDrinks(drinks => {
     state.drinks = drinks;
