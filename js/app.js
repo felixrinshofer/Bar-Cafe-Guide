@@ -2174,7 +2174,7 @@ const HEADER_SHRINK_SMOOTHING = 0.16;
 let headerShrinkCurrent = 0;
 
 function headerShrinkTick() {
-  const target = Math.min(1, Math.max(0, window.scrollY / HEADER_SHRINK_RANGE));
+  const target = state.view === "map" ? 1 : Math.min(1, Math.max(0, window.scrollY / HEADER_SHRINK_RANGE));
   const diff = target - headerShrinkCurrent;
   headerShrinkCurrent = Math.abs(diff) < 0.0008 ? target : headerShrinkCurrent + diff * HEADER_SHRINK_SMOOTHING;
   el.appHeader.style.setProperty("--shrink", headerShrinkCurrent);
