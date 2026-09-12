@@ -521,12 +521,16 @@ function renderPeopleOnMap() {
   renderPeopleMarkers(people);
 }
 
-function setView(view) {
+function setView(view, { immediate = false } = {}) {
   state.view = view;
-  el.mapView.hidden = view !== "map";
-  el.list.hidden = view === "map";
   el.mapBtn.classList.toggle("dock-btn--on", view === "map");
+
   if (view === "map") {
+    el.list.hidden = true;
+    el.mapView.hidden = false;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => el.mapView.classList.add("map-view--open"));
+    });
     if (!mapInitialized) {
       initMap("map");
       mapInitialized = true;
@@ -534,6 +538,17 @@ function setView(view) {
       renderPeopleOnMap();
     }
     invalidateMapSize();
+  } else {
+    el.mapView.classList.remove("map-view--open");
+    if (immediate) {
+      el.mapView.hidden = true;
+      el.list.hidden = false;
+    } else {
+      setTimeout(() => {
+        el.mapView.hidden = true;
+        el.list.hidden = false;
+      }, 320);
+    }
   }
   render();
 }
@@ -2349,7 +2364,7 @@ function initSheetDragToDismiss() {
 
 function initMapDragToDismiss() {
   if (!el.mapDragHandle || !el.mapView) return;
-  attachDragToDismiss(el.mapDragHandle, el.mapView, () => setView("list"), 0.18);
+  attachDragToDismiss(el.mapDragHandle, el.mapView, () => setView("list", { immediate: true }), 0.18);
 }
 
 function findScrollParent(el) {
