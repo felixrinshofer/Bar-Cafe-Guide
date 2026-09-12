@@ -645,11 +645,11 @@ main {
   flex: none;
   padding: 22px 16px 10px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.04) 55%),
-    rgba(238, 241, 245, 0.92);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.15) 55%),
+    rgba(255, 255, 255, 0.97);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .map-view__handle {
