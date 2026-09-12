@@ -142,6 +142,9 @@ const el = {
   mapView: document.getElementById("map-view"),
   mapDragHandle: document.getElementById("map-drag-handle"),
   emptyGlobal: document.getElementById("empty-state-global"),
+  emptyGlobalIcon: document.getElementById("empty-state-icon"),
+  emptyGlobalTitle: document.getElementById("empty-state-title"),
+  emptyGlobalSubtitle: document.getElementById("empty-state-subtitle"),
   search: document.getElementById("search-input"),
   typeChips: document.getElementById("type-chips"),
   categoryChips: document.getElementById("category-chips"),
@@ -151,7 +154,6 @@ const el = {
   sortSelect: document.getElementById("sort-select"),
   locateBtn: document.getElementById("locate-btn"),
   mapBtn: document.getElementById("map-btn"),
-  resultCount: document.getElementById("result-count"),
   resetBtn: document.getElementById("reset-filters"),
   filterToggle: document.getElementById("filter-toggle"),
   filterPanel: document.getElementById("filter-panel"),
@@ -339,6 +341,7 @@ function renderFilterChips() {
     state.filters.vibes.length +
     (state.filters.createdBy || []).length;
   el.filterToggle.textContent = activeCount > 0 ? `Filter (${activeCount}) ▾` : "Filter ▾";
+  el.filterToggle.classList.toggle("filter-toggle-pill--active", activeCount > 0);
 }
 
 function computeRatingStats(ratings) {
@@ -454,7 +457,6 @@ function renderTypeOverview() {
 
 function render() {
   const filtered = applyFilters(state.venues, state.filters, state.distances, state.favorites, state.ratingStats);
-  el.resultCount.textContent = state.venues.length ? `${filtered.length} von ${state.venues.length}` : "";
   el.emptyGlobal.hidden = !state.loaded || state.venues.length !== 0;
   renderTypeOverview();
 
@@ -490,7 +492,7 @@ function persistAndRender() {
 
 async function handleLocate() {
   el.locateBtn.disabled = true;
-  el.locateBtn.textContent = "Suche…";
+  el.locateBtn.title = "Suche…";
   try {
     const pos = await getCurrentPosition();
     state.userLocation = pos;
@@ -504,9 +506,9 @@ async function handleLocate() {
       );
     }
     persistAndRender();
-    el.locateBtn.textContent = "📍 Standort aktualisieren";
+    el.locateBtn.title = "Standort aktualisieren";
   } catch (err) {
-    el.locateBtn.textContent = "📍 Standort nicht verfügbar";
+    el.locateBtn.title = "Standort nicht verfügbar";
     console.warn(err);
   } finally {
     el.locateBtn.disabled = false;
@@ -2454,7 +2456,10 @@ function init() {
       render();
     },
     () => {
-      el.resultCount.textContent = "Verbindung zur Datenbank fehlgeschlagen";
+      el.emptyGlobalIcon.textContent = "⚠️";
+      el.emptyGlobalTitle.textContent = "Verbindung fehlgeschlagen";
+      el.emptyGlobalSubtitle.textContent = "Verbindung zur Datenbank fehlgeschlagen. Bitte überprüfe deine Internetverbindung.";
+      el.emptyGlobal.hidden = false;
     }
   );
 

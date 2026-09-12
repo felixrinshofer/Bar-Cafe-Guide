@@ -19,13 +19,15 @@
   <header id="app-header">
     <h1 class="app-logo-wrap">
       <img id="app-logo" class="app-logo" src="./icons/logo.svg" alt="Bar Café Guide" />
-      <div id="header-promille-badge" class="promille-badge" hidden>
-        <span id="header-promille-value" class="promille-badge__value"></span><span class="promille-badge__unit">‰</span>
+      <div class="header-actions">
+        <button id="locate-btn" class="header-icon-btn" type="button" aria-label="In meiner Nähe">📍</button>
+        <div id="header-promille-badge" class="promille-badge" hidden>
+          <span id="header-promille-value" class="promille-badge__value"></span><span class="promille-badge__unit">‰</span>
+        </div>
       </div>
     </h1>
     <div class="search-row">
       <input id="search-input" type="search" placeholder="Suche nach Name, Kategorie, Viertel…" />
-      <button id="locate-btn">📍 In meiner Nähe</button>
     </div>
 
     <div class="control-row">
@@ -36,10 +38,7 @@
         <option value="neighborhood">Stadtteil</option>
         <option value="rating">Bewertung</option>
       </select>
-      <button id="filter-toggle" type="button" aria-expanded="false">Filter ▾</button>
     </div>
-
-    <p id="result-count"></p>
 
     <div id="filter-panel" hidden>
       <div class="filter-group">
@@ -67,16 +66,19 @@
   </header>
 
   <main>
-    <div id="type-overview" class="type-overview"></div>
+    <div class="filter-row">
+      <button id="filter-toggle" class="filter-toggle-pill" type="button" aria-expanded="false">Filter ▾</button>
+      <div id="type-overview" class="type-overview"></div>
+    </div>
     <div id="venue-list"></div>
     <div id="map-view" class="map-view" hidden>
       <div id="map-drag-handle" class="sheet__handle" aria-hidden="true"></div>
       <div id="map"></div>
     </div>
     <div id="empty-state-global" class="empty-state" hidden>
-      <span class="empty-state__icon">🍸</span>
-      <p class="empty-state__title">Noch keine Locations</p>
-      <p class="empty-state__subtitle">Tipp unten auf „+“, um deine erste Bar oder dein erstes Café hinzuzufügen.</p>
+      <span id="empty-state-icon" class="empty-state__icon">🍸</span>
+      <p id="empty-state-title" class="empty-state__title">Noch keine Locations</p>
+      <p id="empty-state-subtitle" class="empty-state__subtitle">Tipp unten auf „+“, um deine erste Bar oder dein erstes Café hinzuzufügen.</p>
     </div>
   </main>
 
